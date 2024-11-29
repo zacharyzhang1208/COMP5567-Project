@@ -35,7 +35,7 @@ const Wallet = () => {
       <div className="wallet-sections">
         {/* Wallet Section */}
         <div className="section-card">
-          <h2 className="section-title">My Wallet</h2>
+          <h2 className="section-title">My Points</h2>
           <div className="wallet-card">
             <div className="balance-info">
               <div className="balance-label">Current Balance</div>
@@ -76,7 +76,7 @@ const Wallet = () => {
                 loading={miningLoading}
                 disabled={miningLoading}
               >
-                {miningLoading ? 'Mining in progress...' : 'Start Mining'}
+                {miningLoading ? 'Auditing in progress...' : 'Start Auditing'}
               </Button>
             )}
           </form>
