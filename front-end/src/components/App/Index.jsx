@@ -6,6 +6,7 @@ import Sidebar from '../common/Sidebar/Index.jsx';
 import TeacherCourses from '../TeacherCourses/Index';
 import StudentCourses from '../StudentCourses/Index';
 import Wallet from '../Wallet/Index.jsx';
+import StudentRegisterCourse from '../StudentRegisterCourse/Index';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import '../../css/App.css'
 
@@ -45,6 +46,7 @@ function App() {
                                         <Route path="/student_courses" element={<StudentCourses />} />
                                         <Route path="/teacher_courses" element={<TeacherCourses />} />
                                         <Route path="/wallet" element={<Wallet user/>} />
+                                        <Route path="/student_register_courses" element={<StudentRegisterCourse />} />
                                     </Routes>
                                 </div>
                             </div>
