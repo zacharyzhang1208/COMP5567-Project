@@ -811,30 +811,38 @@ class HttpServer {
             }
         });
 
-        // 学生挖矿
-        this.app.post('/miner/studentMine', (req, res, next) => {
+        // 教师挖矿
+        this.app.post('/miner/teacherMine', (req, res, next) => {
             try {
-                const { studentId } = req.body;
+                // 这里要多写一个teacher的password，用来验证是否是教师
+                const { teacherId, password } = req.body;
                 
                 // 参数验证
-                if (!studentId) {
-                    throw new Error('studentId is required');
+                if (!teacherId) {
+                    throw new Error('teacherId is required');
                 }
 
-                // 获取学生公钥作为奖励地址
-                const studentKeys = operator.getStudentKeys(studentId);
-                if (!studentKeys) {
-                    throw new HTTPError(404, `Student not found with ID: ${studentId}`);
+                // 获取教师公钥作为奖励地址
+                // 要去operator中写一个getTeacherKeys的方法
+                const teacherKeys = operator.getTeacherKeys(teacherId);
+                if (!teacherKeys) {
+                    throw new HTTPError(404, `Teacher not found with ID: ${teacherId}`);
                 }
 
-                // 使用学生公钥作为奖励地址进行挖矿
-                miner.mine(studentKeys.publicKey, studentKeys.publicKey)
+                // 验证教师密码
+                const decryptedSecretKey = SymmetricCrypto.decrypt(teacherKeys.encryptedSecretKey, password);
+                if (!decryptedSecretKey) {
+                    throw new HTTPError(401, 'Invalid password');
+                }
+
+                // 使用教师公钥作为奖励地址进行挖矿
+                miner.mine(teacherKeys.publicKey, teacherKeys.publicKey)
                     .then((newBlock) => {
                         newBlock = Block.fromJson(newBlock);
                         blockchain.addBlock(newBlock);
                         res.status(201).send({
                             success: true,
-                            studentId: studentId,
+                            teacherId: teacherId,
                             blockHash: newBlock.hash,
                             reward: Config.MINING_REWARD,
                             message: `挖矿成功! 区块哈希: ${newBlock.hash}`
