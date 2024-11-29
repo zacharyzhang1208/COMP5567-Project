@@ -46,6 +46,18 @@ const TeacherCourses = () => {
 
     const [lessonHistory, setLessonHistory] = useState([]);
 
+    const [showCreateCourseModal, setShowCreateCourseModal] = useState(false);
+    const [newCourse, setNewCourse] = useState({
+        name: '',
+        credits: 3,
+        semester: 'Fall 2024',
+        schedule: '',
+        location: '',
+        description: '',
+        prerequisites: 'None',
+        capacity: 30
+    });
+
     // 从 localStorage 获取教师ID
     const teacherId = JSON.parse(localStorage.getItem('user'))?.id;
 
@@ -244,6 +256,33 @@ const TeacherCourses = () => {
         }
     };
 
+    // 添加处理新建课程的函数
+    const handleCreateCourse = (e) => {
+        e.preventDefault();
+        // 这里添加创建课程的逻辑，现在用模拟数据
+        const courseId = `COURSE${Math.floor(Math.random() * 1000)}`;
+        const createdCourse = {
+            id: courseId,
+            courseId: courseId,
+            instructor: teacherId,
+            enrolled: 0,
+            ...newCourse
+        };
+        
+        setCourses([...courses, createdCourse]);
+        setShowCreateCourseModal(false);
+        setNewCourse({
+            name: '',
+            credits: 3,
+            semester: 'Fall 2024',
+            schedule: '',
+            location: '',
+            description: '',
+            prerequisites: 'None',
+            capacity: 30
+        });
+    };
+
     return (
         <div className="courses-container">
             <div className="courses-header">
@@ -369,6 +408,95 @@ const TeacherCourses = () => {
                                 Create Attendance
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 添加浮动的新建课程按钮 */}
+            <button 
+                className="create-course-btn"
+                onClick={() => setShowCreateCourseModal(true)}
+            >
+                <i className="fas fa-plus"></i> New Course
+            </button>
+
+            {/* 添加新建课程的模态框 */}
+            {showCreateCourseModal && (
+                <div className="modal-overlay" onClick={() => setShowCreateCourseModal(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <button 
+                            className="modal-close" 
+                            onClick={() => setShowCreateCourseModal(false)}
+                        >
+                            ×
+                        </button>
+                        <h2>Create New Course</h2>
+                        <form onSubmit={handleCreateCourse} className="create-course-form">
+                            <div className="form-group">
+                                <label>Course Name:</label>
+                                <input
+                                    type="text"
+                                    value={newCourse.name}
+                                    onChange={e => setNewCourse({...newCourse, name: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Credits:</label>
+                                <input
+                                    type="number"
+                                    value={newCourse.credits}
+                                    onChange={e => setNewCourse({...newCourse, credits: parseInt(e.target.value)})}
+                                    required
+                                    min="1"
+                                    max="6"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Schedule:</label>
+                                <input
+                                    type="text"
+                                    value={newCourse.schedule}
+                                    onChange={e => setNewCourse({...newCourse, schedule: e.target.value})}
+                                    placeholder="e.g., Mon/Wed 10:00-11:30"
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Location:</label>
+                                <input
+                                    type="text"
+                                    value={newCourse.location}
+                                    onChange={e => setNewCourse({...newCourse, location: e.target.value})}
+                                    placeholder="e.g., Room 101"
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Capacity:</label>
+                                <input
+                                    type="number"
+                                    value={newCourse.capacity}
+                                    onChange={e => setNewCourse({...newCourse, capacity: parseInt(e.target.value)})}
+                                    required
+                                    min="1"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Description:</label>
+                                <textarea
+                                    value={newCourse.description}
+                                    onChange={e => setNewCourse({...newCourse, description: e.target.value})}
+                                    rows="3"
+                                    required
+                                />
+                            </div>
+                            <div className="modal-actions">
+                                <button type="submit" className="modal-btn create">
+                                    Create Course
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

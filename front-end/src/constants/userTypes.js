@@ -12,7 +12,6 @@ export const USER_ROUTES = {
     ],
     [USER_TYPES.TEACHER]: [
         { path: '/teacher_courses', icon: 'fas fa-chalkboard-teacher', label: 'Teaching Courses' },
-        { path: '/teacher_register_courses', icon: 'fas fa-book', label: 'Register Course' },
     ]
 };
 
