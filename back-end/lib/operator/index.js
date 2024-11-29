@@ -463,6 +463,32 @@ class Operator {
         };
     }
 
+    // 获取教师公钥和私钥的方法
+    getTeacherKeys(teacherId) {
+        if (!teacherId) {
+            throw new ArgumentError('teacherId is required');
+        }
+        // 获取所有交易
+        let allTransactions = this.blockchain.getAllTransactions();
+        
+        // 找到教师注册交易
+        let teacherTransaction = allTransactions.find(transaction => {
+            const metadata = transaction.data?.metadata;
+            return transaction.type === 'register' && 
+                    metadata?.category === 'register' && 
+                    metadata?.teacherId === teacherId;
+        });
+
+        if (!teacherTransaction) {
+            throw new ArgumentError(`Teacher not found with ID: ${teacherId}`);
+        }
+
+        return {
+            publicKey: teacherTransaction.data.metadata.publicKey,
+            encryptedSecretKey: teacherTransaction.data.metadata.secretKey
+        };
+    }
+
     // 添加获取课程公钥的方法
     getCoursePublicKey(courseId) {
         if (!courseId) {
