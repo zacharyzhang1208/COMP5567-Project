@@ -1,5 +1,5 @@
 // Do not change these configurations after the blockchain is initialized
-// Test
+// Test 1
 module.exports = {
     // INFO: The mining reward could decreases over time like bitcoin. See https://en.bitcoin.it/wiki/Mining#Reward.
     MINING_REWARD: 1,
