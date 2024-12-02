@@ -3,14 +3,19 @@
   "version": "1.0.0",
   "type": "module",
   "description": "group project",
-  "main": "index.js",
+  "main": "src/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
   },
   "author": "Zachary Zhang",
   "repository": "https://github.com/zacharyzhang1208/COMP5567-Project.git",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.21.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
