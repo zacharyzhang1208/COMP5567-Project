@@ -1,6 +1,7 @@
 {
   "name": "comp5567",
   "version": "1.0.0",
+  "type": "module",
   "description": "group project",
   "main": "index.js",
   "scripts": {

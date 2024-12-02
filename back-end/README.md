@@ -1,0 +1,22 @@
+# Back-End
+
+```json
+{
+    "name": "comp5567",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "group project",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Zachary Zhang",
+    "repository": "https://github.com/zacharyzhang1208/COMP5567-Project.git",
+    "license": "ISC",
+    "dependencies": {
+        "express": "^4.21.1"
+    }
+}
+```
+
+"type": "module" means that the code is written in ES6 modules.
