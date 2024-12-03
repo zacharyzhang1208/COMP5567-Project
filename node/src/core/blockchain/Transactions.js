@@ -34,7 +34,7 @@ export class BaseTransaction {
 
     // 添加基础的 isValid 方法
     isValid() {
-        // 基本验证：检查必要字段是否存在
+        //基本验证：检查必要字段是否存在
         // if (!this.type || !this.timestamp) {
         //     return false;
         // }

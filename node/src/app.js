@@ -49,6 +49,7 @@ class TeacherNode {
         console.log("userRegTx is", userRegTx);
         const signature = CryptoUtil.sign(userRegTx.hash, privateKey);
         const isValid = CryptoUtil.verify(userRegTx.hash, signature, publicKey);
+        console.log("isValid is", isValid);
 
         this.messageHandler.handleNewTransaction(userRegTx);
 
