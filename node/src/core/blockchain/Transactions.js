@@ -6,8 +6,6 @@ export class BaseTransaction {
         this.type = type;
         this.timestamp = timestamp || Date.now();
         this.signature = signature;
-        this.hash = this.calculateHash();
-        console.log("base transaction constructor: hash is", this.hash);
     }
 
     calculateHash() {
@@ -24,27 +22,23 @@ export class BaseTransaction {
             ...(this.verificationCode && { verificationCode: this.verificationCode })
         };
         
-         let temp = createHash('sha256')
-            .update(JSON.stringify(data))
-            .digest('hex');
-        
-        console.log("temp is", temp);
-        return temp;
+        return createHash('sha256').update(JSON.stringify(data)).digest('hex');
     }
 
     // 添加基础的 isValid 方法
     isValid() {
         //基本验证：检查必要字段是否存在
-        // if (!this.type || !this.timestamp) {
-        //     return false;
-        // }
+        if (!this.type || !this.timestamp) {
+            return false;
+        }
 
-        // // 验证哈希值
-        // if (this.hash !== this.calculateHash()) {
-        //     console.log("this.hash",this.hash)
-        //     console.log("this.calculateHash",this.calculateHash())
-        //     return false;
-        // }
+        // 验证哈希值
+        if (this.hash !== this.calculateHash()) {
+            console.log("this is", this)
+            console.log("this.hash",this.hash)
+            console.log("this.calculateHash",this.calculateHash())
+            return false;
+        }
 
         return true;
     }
@@ -66,6 +60,7 @@ export class UserRegistrationTransaction extends BaseTransaction {
         this.userId = userId;
         this.userType = userType;  // 'TEACHER' 或 'STUDENT'
         this.publicKey = publicKey;
+        this.hash = this.calculateHash();
     }
 
     // 可以选择重写 isValid 方法来添加特定的验证逻辑

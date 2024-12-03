@@ -45,9 +45,10 @@ class TeacherNode {
             userType: 'TEACHER',
             publicKey: publicKey
         });
-
-        console.log("userRegTx is", userRegTx);
+        
         const signature = CryptoUtil.sign(userRegTx.hash, privateKey);
+        userRegTx.signature = signature;
+        console.log("userRegTx is", userRegTx);
         const isValid = CryptoUtil.verify(userRegTx.hash, signature, publicKey);
         console.log("isValid is", isValid);
 
