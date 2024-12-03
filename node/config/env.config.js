@@ -25,8 +25,6 @@ class EnvironmentConfig {
 	constructor() {
 		this.requiredEnvVars = [
 			'P2P_PORT',
-			'P2P_HOST',
-			// Add other required environment variables here
 		];
 		this.init();
 	}
@@ -60,8 +58,23 @@ class EnvironmentConfig {
 		const __dirname = dirname(__filename);
 		const rootDir = join(__dirname, '../');
 		const envPath = join(rootDir, '.env');
+		const exampleEnvPath = join(rootDir, '.env.example');
+
 		if (!fs.existsSync(envPath)) {
-			throw new EnvConfigError('.env file not found');
+			console.log('\x1b[33m%s\x1b[0m', '.env file not found, attempting to create from .env.example');
+			
+			// 检查 .env.example 是否存在
+			if (!fs.existsSync(exampleEnvPath)) {
+				throw new EnvConfigError('.env.example file not found');
+			}
+
+			try {
+				// 复制 .env.example 到 .env
+				fs.copyFileSync(exampleEnvPath, envPath);
+				console.log('\x1b[32m%s\x1b[0m', '✓ Created .env file from .env.example');
+			} catch (error) {
+				throw new EnvConfigError(`Failed to create .env file: ${error.message}`);
+			}
 		}
 	}
 
@@ -98,12 +111,6 @@ class EnvironmentConfig {
 		if (missingEnvVars.length > 0) {
 			throw new EnvConfigError(`Missing required variables: ${missingEnvVars.join(', ')}`);
 		}
-
-		// 验证IP地址格式
-		const host = this.get('P2P_HOST');
-		if (host === 'localhost' || host === '127.0.0.1') {
-			throw new EnvConfigError('P2P_HOST must be set to your local network IP address for LAN connections');
-		}
 	}
 
 	/**
@@ -121,7 +128,6 @@ class EnvironmentConfig {
 	 */
 	getNetworkConfig() {
 		return {
-			host: this.get('P2P_HOST'),
 			port: this.get('P2P_PORT')
 		};
 	}
