@@ -1,26 +1,10 @@
-import express from 'express';
 import { WebSocketServer } from 'ws';
 import { ethers } from 'ethers';
 
 class TeacherNode {
     constructor(config = {}) {
-        this.port = config.port || 3000;
         this.p2pPort = config.p2pPort || 6001;
         this.peers = new Set();
-        this.app = express();
-        this.setupExpress();
-    }
-
-    setupExpress() {
-        // 基本的健康检查接口
-        this.app.get('/health', (req, res) => {
-            res.json({
-                status: 'ok',
-                nodeId: this.nodeId,
-                peers: Array.from(this.peers).length,
-                timestamp: new Date().toISOString()
-            });
-        });
     }
 
     setupP2PServer() {
@@ -64,19 +48,13 @@ class TeacherNode {
     }
 
     start() {
-        // 启动 HTTP 服务器
-        this.app.listen(this.port, () => {
-            console.log(`Teacher Node HTTP server is running on port ${this.port}`);
-        });
-
-        // 启动 P2P 服务器
+        // 只启动 P2P 服务器
         this.setupP2PServer();
     }
 }
 
 // 创建并启动节点
 const node = new TeacherNode({
-    port: process.env.PORT || 3000,
     p2pPort: process.env.P2P_PORT || 6001
 });
 
