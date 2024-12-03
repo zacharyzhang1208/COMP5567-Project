@@ -1,4 +1,4 @@
-import Transactions from '../core/blockchain/transactions.js';
+import { UserRegistrationTransaction, CourseCreationTransaction } from '../core/blockchain/transactions.js';
 import Block from '../core/blockchain/Block.js';
 
 // 定义消息类型
@@ -44,15 +44,16 @@ class MessageHandler {
      * 处理新交易
      */
     handleNewTransaction(transactionData) {
+        console.log("transactionData in handleNewTransaction",transactionData)
         try {
             // 根据交易类型创建对应的交易实例
             let transaction;
             switch (transactionData.type) {
                 case 'USER_REGISTRATION':
-                    transaction = new Transactions.UserRegistrationTransaction(transactionData);
+                    transaction = new UserRegistrationTransaction(transactionData);
                     break;
                 case 'COURSE_CREATE':
-                    transaction = new Transactions.CourseCreationTransaction(transactionData);
+                    transaction = new CourseCreationTransaction(transactionData);
                     break;
                 case 'COURSE_ENROLLMENT':
                     transaction = new Transactions.CourseEnrollmentTransaction(transactionData);
@@ -65,6 +66,10 @@ class MessageHandler {
                     break;
                 default:
                     throw new Error(`Unknown transaction type: ${transactionData.type}`);
+            }
+
+            if (!transaction.isValid()) {
+                throw new Error('Transaction is invalid');
             }
 
             // 添加到待处理交易池

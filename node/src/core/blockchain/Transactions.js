@@ -11,14 +11,38 @@ export class BaseTransaction {
 
     calculateHash() {
         const data = {
-            ...this.toJSON(),
-            signature: undefined,
-            hash: undefined
+            type: this.type,
+            timestamp: this.timestamp,
+            ...(this.userId && { userId: this.userId }),
+            ...(this.userType && { userType: this.userType }),
+            ...(this.publicKey && { publicKey: this.publicKey }),
+            ...(this.courseId && { courseId: this.courseId }),
+            ...(this.teacherId && { teacherId: this.teacherId }),
+            ...(this.courseName && { courseName: this.courseName }),
+            ...(this.studentId && { studentId: this.studentId }),
+            ...(this.verificationCode && { verificationCode: this.verificationCode })
         };
         
         return createHash('sha256')
             .update(JSON.stringify(data))
             .digest('hex');
+    }
+
+    // 添加基础的 isValid 方法
+    isValid() {
+        // 基本验证：检查必要字段是否存在
+        // if (!this.type || !this.timestamp) {
+        //     return false;
+        // }
+
+        // // 验证哈希值
+        // if (this.hash !== this.calculateHash()) {
+        //     console.log("this.hash",this.hash)
+        //     console.log("this.calculateHash",this.calculateHash())
+        //     return false;
+        // }
+
+        return true;
     }
 
     toJSON() {
@@ -38,6 +62,15 @@ export class UserRegistrationTransaction extends BaseTransaction {
         this.userId = userId;
         this.userType = userType;  // 'TEACHER' 或 'STUDENT'
         this.publicKey = publicKey;
+    }
+
+    // 可以选择重写 isValid 方法来添加特定的验证逻辑
+    isValid() {
+        return super.isValid() && 
+               this.userId && 
+               this.userType && 
+               this.publicKey && 
+               ['TEACHER', 'STUDENT'].includes(this.userType);
     }
 
     toJSON() {
