@@ -45,20 +45,17 @@ class TeacherNode {
             publicKey: 'abc123'
         });
 
-        const courseCreationTx = new CourseCreationTransaction({
-            courseId: 'course1',
-            teacherId: 'user1',
-            courseName: 'Blockchain 101'
-        });
-        console.log("userRegTx", userRegTx);
-        console.log("courseCreationTx", courseCreationTx);
+        // const courseCreationTx = new CourseCreationTransaction({
+        //     courseId: 'course1',
+        //     teacherId: 'user1',
+        //     courseName: 'Blockchain 101'
+        // });
 
         // 处理并广播交易
         this.messageHandler.handleNewTransaction(userRegTx);
-        this.messageHandler.handleNewTransaction(courseCreationTx);
+        //this.messageHandler.handleNewTransaction(courseCreationTx);
 
         // 创建一个新区块
-        console.log("try to create a new block", this.chain);
         const newBlock = this.chain.createBlock('user1', 'signature123');
         console.log('New Block Created:', newBlock);
 

@@ -7,6 +7,7 @@ export class BaseTransaction {
         this.timestamp = timestamp || Date.now();
         this.signature = signature;
         this.hash = this.calculateHash();
+        console.log("base transaction constructor: hash is", this.hash);
     }
 
     calculateHash() {
@@ -23,9 +24,12 @@ export class BaseTransaction {
             ...(this.verificationCode && { verificationCode: this.verificationCode })
         };
         
-        return createHash('sha256')
+         let temp = createHash('sha256')
             .update(JSON.stringify(data))
             .digest('hex');
+        
+        console.log("temp is", temp);
+        return temp;
     }
 
     // 添加基础的 isValid 方法

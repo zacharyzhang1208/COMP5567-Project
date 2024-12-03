@@ -100,17 +100,20 @@ class Chain {
      * @param {Block} previousBlock 前一个区块
      */
     isValidBlock(block, previousBlock) {
-        // if (!block.isValid()) {
-        //     return false;
-        // }
+        if (!block.isValid()) {
+            console.log("block is not valid");
+            return false;
+        }
 
-        // if (block.previousHash !== previousBlock.hash) {
-        //     return false;
-        // }
+        if (block.previousHash !== previousBlock.hash) {
+            console.log("previous hash is not equal");
+            return false;
+        }
 
-        // if (block.timestamp <= previousBlock.timestamp) {
-        //     return false;
-        // }
+        if (block.timestamp <= previousBlock.timestamp) {
+            console.log("timestamp is not valid");
+            return false;
+        }
 
         return true;
     }

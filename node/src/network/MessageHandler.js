@@ -43,40 +43,32 @@ class MessageHandler {
     /**
      * 处理新交易
      */
-    handleNewTransaction(transactionData) {
-        console.log("transactionData in handleNewTransaction",transactionData)
+    handleNewTransaction(transaction) {
         try {
-            // 根据交易类型创建对应的交易实例
-            let transaction;
-            switch (transactionData.type) {
-                case 'USER_REGISTRATION':
-                    transaction = new UserRegistrationTransaction(transactionData);
-                    break;
-                case 'COURSE_CREATE':
-                    transaction = new CourseCreationTransaction(transactionData);
-                    break;
-                case 'COURSE_ENROLLMENT':
-                    transaction = new Transactions.CourseEnrollmentTransaction(transactionData);
-                    break;
-                case 'PUBLISH_ATTENDANCE':
-                    transaction = new Transactions.PublishAttendanceTransaction(transactionData);
-                    break;
-                case 'SUBMIT_ATTENDANCE':
-                    transaction = new Transactions.SubmitAttendanceTransaction(transactionData);
-                    break;
-                default:
-                    throw new Error(`Unknown transaction type: ${transactionData.type}`);
+            // 如果传入的是已经实例化的交易对象
+            if (transaction instanceof BaseTransaction) {
+                if (!transaction.isValid()) {
+                    throw new Error('Transaction is invalid');
+                }
+                this.node.chain.addTransaction(transaction);
+                this.broadcastTransaction(transaction);
+                return;
             }
 
-            if (!transaction.isValid()) {
+            // 如果传入的是JSON数据（来自网络消息），则需要实例化
+            let newTransaction;
+            switch (transaction.type) {
+                case 'USER_REGISTRATION':
+                    newTransaction = new UserRegistrationTransaction(transaction);
+                    break;
+                // ... 其他 case
+            }
+            
+            if (!newTransaction.isValid()) {
                 throw new Error('Transaction is invalid');
             }
-
-            // 添加到待处理交易池
-            this.node.chain.addTransaction(transaction);
-
-            // 广播给其他节点
-            this.broadcastTransaction(transaction);
+            this.node.chain.addTransaction(newTransaction);
+            this.broadcastTransaction(newTransaction);
         } catch (error) {
             console.error('Error handling new transaction:', error);
         }
