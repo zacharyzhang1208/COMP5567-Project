@@ -3,9 +3,12 @@ import Chain from './core/blockchain/Chain.js';
 import MessageHandler from './network/MessageHandler.js';
 import { UserRegistrationTransaction, CourseCreationTransaction } from './core/blockchain/Transactions.js';
 import CryptoUtil from './utils/crypto.js';
+import { envConfig } from '../config/env.config.js';
 
 class TeacherNode {
     constructor() {
+        const networkConfig = envConfig.getNetworkConfig();
+        this.port = networkConfig.port;
         this.chain = new Chain();  // 区块链实例
         this.messageHandler = new MessageHandler(this);  // 消息处理器实例
         this.peers = new Set();  // 连接的节点集合
@@ -13,7 +16,7 @@ class TeacherNode {
     }
 
     setupP2PServer() {
-        const server = new WebSocketServer({ port: 6001 });
+        const server = new WebSocketServer({ port: this.port });
         server.on('connection', socket => {
             console.log('New peer connected');
             this.peers.add(socket);
@@ -28,7 +31,7 @@ class TeacherNode {
                 console.error('WebSocket error:', error);
             });
         });
-        console.log('P2P Server running on port 6001');
+        console.log(`P2P Server running on port ${this.port}`);
     }
 
     broadcastMessage(message) {
