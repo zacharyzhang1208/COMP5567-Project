@@ -28,6 +28,7 @@ class Chain {
             const chainData = JSON.parse(fs.readFileSync(this.chainFilePath, 'utf8'));
             this.chain = chainData.map(data => new Block(data));
         } else {
+            console.log("no chain data file, create a new genesis block");
             this.chain = [this.createGenesisBlock()]; // 如果没有数据文件，创建创世区块
         }
     }

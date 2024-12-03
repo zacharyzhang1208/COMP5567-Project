@@ -37,10 +37,6 @@ class TeacherNode {
     }
 
     start() {
-        // 创建创世区块
-        console.log("Creating genesis block...");
-        const genesisBlock = this.chain.createGenesisBlock();
-        console.log("Genesis block created:", genesisBlock);
 
         // 模拟一些交易
         const userRegTx = new UserRegistrationTransaction({
