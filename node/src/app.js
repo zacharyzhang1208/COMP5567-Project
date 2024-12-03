@@ -1,4 +1,4 @@
-import { WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import { ethers } from 'ethers';
 
 class TeacherNode {
@@ -51,6 +51,20 @@ class TeacherNode {
         // 只启动 P2P 服务器
         this.setupP2PServer();
     }
+
+    // 添加连接到其他节点的方法
+    connectToPeer(peerAddress) {
+        const ws = new WebSocket(`ws://${peerAddress}`);
+        
+        ws.on('open', () => {
+            console.log(`Connected to peer: ${peerAddress}`);
+            this.initConnection(ws);
+        });
+
+        ws.on('error', (error) => {
+            console.error(`Failed to connect to peer ${peerAddress}:`, error.message);
+        });
+    }
 }
 
 // 创建并启动节点
@@ -59,5 +73,13 @@ const node = new TeacherNode({
 });
 
 node.start();
+
+// 如果是 6002 端口，则连接到 6001
+if (node.p2pPort === '6002' || node.p2pPort === 6002) {
+    setTimeout(() => {
+        console.log('Attempting to connect to node on port 6001...');
+        node.connectToPeer('localhost:6001');
+    }, 1000);  // 延迟1秒连接，确保两个服务都启动
+}
 
 export default TeacherNode;
