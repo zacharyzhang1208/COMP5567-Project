@@ -39,8 +39,6 @@ class TeacherNode {
 
     start() {
         const { publicKey, privateKey } = CryptoUtil.generateKeyPair('root', 'password');
-        console.log("publicKey is", publicKey);
-        console.log("privateKey is", privateKey);
         
         const userRegTx = new UserRegistrationTransaction({
             userId: 'root',

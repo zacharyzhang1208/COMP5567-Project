@@ -46,9 +46,7 @@ class Block {
     validateTransactions() {
         return this.transactions.every(transaction => {
             // 基本的交易验证
-            console.log("try to validate transaction", transaction);
             if (!transaction.hash || transaction.hash !== transaction.calculateHash()) {
-                console.log(transaction);
                 console.log("transaction is not valid", transaction.hash, transaction.calculateHash());
                 return false;
             }
@@ -139,7 +137,6 @@ class Block {
      */
     isValid() {
         // 验证哈希值
-        console.log("try to validate hash", this.hash, this.calculateHash());
         if (this.hash !== this.calculateHash()) {
             return false;
         }
