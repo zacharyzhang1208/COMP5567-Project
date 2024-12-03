@@ -44,9 +44,11 @@ class Block {
      * @returns {boolean}
      */
     validateTransactions() {
+
         return this.transactions.every(transaction => {
             // 基本的交易验证
             if (!transaction.hash || transaction.hash !== transaction.calculateHash()) {
+                console.log("c3");
                 console.log("transaction is not valid", transaction.hash, transaction.calculateHash());
                 return false;
             }

@@ -52,9 +52,6 @@ class TeacherNode {
 
         this.messageHandler.handleNewTransaction(userRegTx);
 
-        const newBlock = this.chain.createBlock('root', 'signature123');
-        console.log('New Block Created:', newBlock);
-
         if (this.chain.isValidChain()) {
             console.log('Blockchain is valid');
         } else {
