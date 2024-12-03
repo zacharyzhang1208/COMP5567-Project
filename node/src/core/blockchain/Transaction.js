@@ -2,17 +2,35 @@ import { createHash } from 'crypto';
 
 class Transaction {
     constructor({
+        type,
         studentId,
         courseId,
         timestamp,
         location,
-        signature
+        signature,
+        teacherId,
+        courseName,
+        courseTime
     }) {
-        this.studentId = studentId;
-        this.courseId = courseId;
+        this.type = type;
         this.timestamp = timestamp || Date.now();
-        this.location = location;
-        this.signature = signature; // 学生的签名
+        this.signature = signature;
+        
+        switch(type) {
+            case 'ATTENDANCE':
+                this.studentId = studentId;
+                this.courseId = courseId;
+                this.location = location;
+                break;
+            case 'COURSE_CREATE':
+                this.teacherId = teacherId;
+                this.courseId = courseId;
+                this.courseName = courseName;
+                this.courseTime = courseTime;
+                break;
+            // ... 其他类型的处理
+        }
+        
         this.hash = this.calculateHash();
     }
 
@@ -22,6 +40,7 @@ class Transaction {
      */
     calculateHash() {
         const data = {
+            type: this.type,
             studentId: this.studentId,
             courseId: this.courseId,
             timestamp: this.timestamp,
@@ -58,6 +77,7 @@ class Transaction {
      */
     toJSON() {
         return {
+            type: this.type,
             studentId: this.studentId,
             courseId: this.courseId,
             timestamp: this.timestamp,
