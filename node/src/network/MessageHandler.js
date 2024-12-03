@@ -46,7 +46,6 @@ class MessageHandler {
     handleNewTransaction(transaction) {
         try {
             // 如果传入的是已经实例化的交易对象
-            console.log("transaction instanceof BaseTransaction is", transaction instanceof BaseTransaction);
             if (transaction instanceof BaseTransaction) {
                 if (!transaction.isValid()) {
                     throw new Error('Transaction is invalid');
