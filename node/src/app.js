@@ -2,6 +2,7 @@ import { WebSocketServer } from 'ws';
 import Chain from './core/blockchain/Chain.js';
 import MessageHandler from './network/MessageHandler.js';
 import { UserRegistrationTransaction, CourseCreationTransaction } from './core/blockchain/Transactions.js';
+import CryptoUtil from './utils/crypto.js';
 
 class TeacherNode {
     constructor() {
@@ -37,29 +38,23 @@ class TeacherNode {
     }
 
     start() {
-
-        // 模拟一些交易
+        const { publicKey, privateKey } = CryptoUtil.generateKeyPair('user1', 'password');
+        console.log("publicKey is", publicKey);
+        console.log("privateKey is", privateKey);
+        
         const userRegTx = new UserRegistrationTransaction({
             userId: 'user1',
             userType: 'TEACHER',
-            publicKey: 'abc123'
+            publicKey: publicKey
         });
 
-        // const courseCreationTx = new CourseCreationTransaction({
-        //     courseId: 'course1',
-        //     teacherId: 'user1',
-        //     courseName: 'Blockchain 101'
-        // });
+        console.log("userRegTx is", userRegTx);
 
-        // 处理并广播交易
         this.messageHandler.handleNewTransaction(userRegTx);
-        //this.messageHandler.handleNewTransaction(courseCreationTx);
 
-        // 创建一个新区块
         const newBlock = this.chain.createBlock('user1', 'signature123');
         console.log('New Block Created:', newBlock);
 
-        // 验证区块链的完整性
         if (this.chain.isValidChain()) {
             console.log('Blockchain is valid');
         } else {

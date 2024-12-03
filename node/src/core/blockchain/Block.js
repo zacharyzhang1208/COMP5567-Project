@@ -1,19 +1,22 @@
 import { ethers } from 'ethers';
 import { createHash } from 'crypto';
 import Transactions from './transactions.js';
+import CryptoUtil from '../../utils/crypto.js';
 
 class Block {
     constructor({
         timestamp,
         transactions,
         previousHash,
-        validator,
+        validatorId,
+        validatorPubKey,
         signature
     }) {
         this.timestamp = timestamp || Date.now();
         this.transactions = transactions || [];
         this.previousHash = previousHash || '0';
-        this.validator = validator || '';
+        this.validatorId = validatorId || '';
+        this.validatorPubKey = validatorPubKey || '';
         this.signature = signature || '';
         this.hash = this.calculateHash();
     }
@@ -27,7 +30,8 @@ class Block {
             timestamp: this.timestamp,
             transactions: this.transactions,
             previousHash: this.previousHash,
-            validator: this.validator
+            validatorId: this.validatorId,
+            validatorPubKey: this.validatorPubKey
         };
         
         return createHash('sha256')
@@ -147,18 +151,8 @@ class Block {
         }
 
         // 验证签名（如果有）
-        if (this.signature && this.validator) {
-            
-            try {
-                console.log("check point 1!!BUG HERE");
-                
-                // const signerAddr = ethers.utils.verifyMessage(this.hash, this.signature);
-                
-                // return signerAddr.toLowerCase() === this.validator.toLowerCase();
-                return true;
-            } catch {
-                return false;
-            }
+        if (this.signature && this.validatorPubKey) {
+            return CryptoUtil.verify(this.hash, this.signature, this.validatorPubKey);
         }
 
         return true;
