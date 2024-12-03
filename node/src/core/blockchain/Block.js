@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { createHash } from 'crypto';
-import Transactions from './transactions.js';
+import Transactions from './Transactions.js';
 import CryptoUtil from '../../utils/crypto.js';
 
 class Block {

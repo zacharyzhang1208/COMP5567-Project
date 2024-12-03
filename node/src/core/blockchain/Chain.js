@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Block from './Block.js';
-import { createHash } from 'crypto';
 
 class Chain {
     constructor() {

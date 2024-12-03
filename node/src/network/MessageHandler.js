@@ -1,4 +1,4 @@
-import { UserRegistrationTransaction, CourseCreationTransaction } from '../core/blockchain/transactions.js';
+import { UserRegistrationTransaction, CourseCreationTransaction } from '../core/blockchain/Transactions.js';
 import Block from '../core/blockchain/Block.js';
 
 // 定义消息类型
