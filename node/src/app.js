@@ -81,4 +81,6 @@ const node = new TeacherNode({
 
 node.start();
 
+node.connectToPeer('172.20.10.7', '6002');
+
 export default TeacherNode;
