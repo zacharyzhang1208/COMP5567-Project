@@ -37,6 +37,11 @@ class TeacherNode {
     }
 
     start() {
+        // 创建创世区块
+        console.log("Creating genesis block...");
+        const genesisBlock = this.chain.createGenesisBlock();
+        console.log("Genesis block created:", genesisBlock);
+
         // 模拟一些交易
         const userRegTx = new UserRegistrationTransaction({
             userId: 'user1',
@@ -49,14 +54,15 @@ class TeacherNode {
             teacherId: 'user1',
             courseName: 'Blockchain 101'
         });
-        console.log("userRegTx",userRegTx)
-        console.log("courseCreationTx",courseCreationTx)
+        console.log("userRegTx", userRegTx);
+        console.log("courseCreationTx", courseCreationTx);
 
         // 处理并广播交易
         this.messageHandler.handleNewTransaction(userRegTx);
         this.messageHandler.handleNewTransaction(courseCreationTx);
 
         // 创建一个新区块
+        console.log("try to create a new block", this.chain);
         const newBlock = this.chain.createBlock('user1', 'signature123');
         console.log('New Block Created:', newBlock);
 
