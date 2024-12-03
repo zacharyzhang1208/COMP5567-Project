@@ -57,9 +57,8 @@ class EnvironmentConfig {
 	checkEnvFile() {
 		const __filename = fileURLToPath(import.meta.url);
 		const __dirname = dirname(__filename);
-		const rootDir = join(__dirname, '../..');
+		const rootDir = join(__dirname, '../');
 		const envPath = join(rootDir, '.env');
-
 		if (!fs.existsSync(envPath)) {
 			throw new EnvConfigError('.env file not found');
 		}
@@ -73,7 +72,7 @@ class EnvironmentConfig {
 	loadEnvFile() {
 		const __filename = fileURLToPath(import.meta.url);
 		const __dirname = dirname(__filename);
-		const rootDir = join(__dirname, '../..');
+		const rootDir = join(__dirname, '../');
 		const envPath = join(rootDir, '.env');
 
 		const result = dotenv.config({ path: envPath });

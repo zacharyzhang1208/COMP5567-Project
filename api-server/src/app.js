@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { envConfig } from './config/env.config.js';
+import { envConfig } from '../config/env.config.js';
 
 /**
  * Express application instance
