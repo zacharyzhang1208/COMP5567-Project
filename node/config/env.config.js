@@ -25,6 +25,7 @@ class EnvironmentConfig {
 	constructor() {
 		this.requiredEnvVars = [
 			'P2P_PORT',
+			'P2P_HOST',
 			// Add other required environment variables here
 		];
 		this.init();
@@ -97,6 +98,12 @@ class EnvironmentConfig {
 		if (missingEnvVars.length > 0) {
 			throw new EnvConfigError(`Missing required variables: ${missingEnvVars.join(', ')}`);
 		}
+
+		// 验证IP地址格式
+		const host = this.get('P2P_HOST');
+		if (host === 'localhost' || host === '127.0.0.1') {
+			throw new EnvConfigError('P2P_HOST must be set to your local network IP address for LAN connections');
+		}
 	}
 
 	/**
@@ -106,6 +113,17 @@ class EnvironmentConfig {
 	 */
 	get(key) {
 		return process.env[key];
+	}
+
+	/**
+	 * 获取网络配置
+	 * @returns {Object} 网络配置对象
+	 */
+	getNetworkConfig() {
+		return {
+			host: this.get('P2P_HOST'),
+			port: this.get('P2P_PORT')
+		};
 	}
 }
 

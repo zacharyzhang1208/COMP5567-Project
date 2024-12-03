@@ -3,19 +3,25 @@ import { envConfig } from '../config/env.config.js';
 
 class TeacherNode {
     constructor(config = {}) {
-        this.p2pPort = config.p2pPort || 6001;
+        const networkConfig = envConfig.getNetworkConfig();
+        this.p2pPort = config.p2pPort || networkConfig.port;
+        this.p2pHost = config.p2pHost || networkConfig.host;
         this.peers = new Set();
     }
 
     setupP2PServer() {
-        this.p2pServer = new WebSocketServer({ port: this.p2pPort });
+        this.p2pServer = new WebSocketServer({ 
+            port: this.p2pPort,
+            host: this.p2pHost  // 指定监听的网络接口
+        });
         
         this.p2pServer.on('connection', (ws, req) => {
-            console.log('New peer connected');
+            const clientAddress = req.socket.remoteAddress;
+            console.log(`New peer connected from ${clientAddress}`);
             this.initConnection(ws);
         });
 
-        console.log(`P2P Server is running on port ${this.p2pPort}`);
+        console.log(`P2P Server is running on ${this.p2pHost}:${this.p2pPort}`);
     }
 
     initConnection(ws) {
@@ -53,34 +59,26 @@ class TeacherNode {
     }
 
     // 添加连接到其他节点的方法
-    connectToPeer(peerAddress) {
-        const ws = new WebSocket(`ws://${peerAddress}`);
+    connectToPeer(peerHost, peerPort) {
+        const ws = new WebSocket(`ws://${peerHost}:${peerPort}`);
         
         ws.on('open', () => {
-            console.log(`Connected to peer: ${peerAddress}`);
+            console.log(`Connected to peer: ${peerHost}:${peerPort}`);
             this.initConnection(ws);
         });
 
         ws.on('error', (error) => {
-            console.error(`Failed to connect to peer ${peerAddress}:`, error.message);
+            console.error(`Failed to connect to peer ${peerHost}:${peerPort}:`, error.message);
         });
     }
 }
 
-const _p2pPort = envConfig.get('P2P_PORT')
 // 创建并启动节点
 const node = new TeacherNode({
-    p2pPort: _p2pPort || 6001
+    p2pPort: envConfig.get('P2P_PORT'),
+    p2pHost: envConfig.get('P2P_HOST')
 });
 
 node.start();
-
-// 如果是 6002 端口，则连接到 6001
-if (node.p2pPort === '6002' || node.p2pPort === 6002) {
-    setTimeout(() => {
-        console.log('Attempting to connect to node on port 6001...');
-        node.connectToPeer('localhost:6001');
-    }, 1000);  // 延迟1秒连接，确保两个服务都启动
-}
 
 export default TeacherNode;
