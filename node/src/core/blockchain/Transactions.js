@@ -67,4 +67,11 @@ export class CourseTransaction extends BaseTransaction {
             courseTime: this.courseTime
         };
     }
-} 
+}
+
+// 统一导出
+export default {
+    BaseTransaction,
+    AttendanceTransaction,
+    CourseTransaction
+}; 
