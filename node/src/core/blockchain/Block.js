@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import { createHash } from 'crypto';
+import Transactions from './transactions.js';
 
 class Block {
     constructor({
@@ -12,8 +13,8 @@ class Block {
         this.timestamp = timestamp || Date.now();
         this.transactions = transactions || [];
         this.previousHash = previousHash || '0';
-        this.validator = validator || ''; // 验证者地址
-        this.signature = signature || ''; // 验证者签名
+        this.validator = validator || '';
+        this.signature = signature || '';
         this.hash = this.calculateHash();
     }
 
@@ -35,12 +36,108 @@ class Block {
     }
 
     /**
+     * 验证区块中的所有交易
+     * @returns {boolean}
+     */
+    validateTransactions() {
+        return this.transactions.every(transaction => {
+            // 基本的交易验证
+            if (!transaction.hash || transaction.hash !== transaction.calculateHash()) {
+                return false;
+            }
+
+            // 根据交易类型进行特定验证
+            switch (transaction.type) {
+                case 'USER_REGISTRATION':
+                    return this.validateUserRegistration(transaction);
+                case 'COURSE_CREATE':
+                    return this.validateCourseCreation(transaction);
+                case 'COURSE_ENROLLMENT':
+                    return this.validateCourseEnrollment(transaction);
+                case 'PUBLISH_ATTENDANCE':
+                    return this.validatePublishAttendance(transaction);
+                case 'SUBMIT_ATTENDANCE':
+                    return this.validateSubmitAttendance(transaction);
+                default:
+                    return false;
+            }
+        });
+    }
+
+    /**
+     * 验证用户注册交易
+     */
+    validateUserRegistration(transaction) {
+        return (
+            transaction instanceof Transactions.UserRegistrationTransaction &&
+            transaction.userId &&
+            transaction.userType &&
+            transaction.publicKey &&
+            ['TEACHER', 'STUDENT'].includes(transaction.userType)
+        );
+    }
+
+    /**
+     * 验证课程创建交易
+     */
+    validateCourseCreation(transaction) {
+        return (
+            transaction instanceof Transactions.CourseCreationTransaction &&
+            transaction.courseId &&
+            transaction.teacherId &&
+            transaction.courseName
+        );
+    }
+
+    /**
+     * 验证选课交易
+     */
+    validateCourseEnrollment(transaction) {
+        return (
+            transaction instanceof Transactions.CourseEnrollmentTransaction &&
+            transaction.studentId &&
+            transaction.courseId
+        );
+    }
+
+    /**
+     * 验证发布签到交易
+     */
+    validatePublishAttendance(transaction) {
+        return (
+            transaction instanceof Transactions.PublishAttendanceTransaction &&
+            transaction.courseId &&
+            transaction.teacherId &&
+            transaction.validPeriod &&
+            transaction.verificationCode &&
+            transaction.verificationCode.length === 6
+        );
+    }
+
+    /**
+     * 验证提交签到交易
+     */
+    validateSubmitAttendance(transaction) {
+        return (
+            transaction instanceof Transactions.SubmitAttendanceTransaction &&
+            transaction.studentId &&
+            transaction.courseId &&
+            transaction.verificationCode &&
+            transaction.verificationCode.length === 6
+        );
+    }
+
+    /**
      * 验证区块的有效性
-     * @returns {boolean} 区块是否有效
      */
     isValid() {
         // 验证哈希值
         if (this.hash !== this.calculateHash()) {
+            return false;
+        }
+
+        // 验证所有交易
+        if (!this.validateTransactions()) {
             return false;
         }
 

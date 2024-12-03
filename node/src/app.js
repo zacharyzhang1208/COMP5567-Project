@@ -72,7 +72,6 @@ class TeacherNode {
         });
     }
 }
-
 // 创建并启动节点
 const node = new TeacherNode({
     p2pPort: envConfig.get('P2P_PORT'),
@@ -84,3 +83,4 @@ node.start();
 node.connectToPeer('172.20.10.7', '6002');
 
 export default TeacherNode;
+
