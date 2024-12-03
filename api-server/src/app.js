@@ -58,7 +58,7 @@ app.use((err, req, res, next) => {
  * Server Initialization
  * Start the Express server on the configured port
  */
-const port = envConfig.get('PORT');
+const port = envConfig.get('HTTP_PORT');
 app.listen(port, () => {
 	console.log(`✓ Server is running on port ${port}`);
 });

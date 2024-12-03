@@ -24,7 +24,7 @@ class EnvironmentConfig {
 	 */
 	constructor() {
 		this.requiredEnvVars = [
-			'HTTP_PORT',
+			'P2P_PORT',
 			// Add other required environment variables here
 		];
 		this.init();

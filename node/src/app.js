@@ -1,5 +1,5 @@
 import { WebSocket, WebSocketServer } from 'ws';
-import { ethers } from 'ethers';
+import { envConfig } from '../config/env.config.js';
 
 class TeacherNode {
     constructor(config = {}) {
@@ -67,9 +67,10 @@ class TeacherNode {
     }
 }
 
+const _p2pPort = envConfig.get('P2P_PORT')
 // 创建并启动节点
 const node = new TeacherNode({
-    p2pPort: process.env.P2P_PORT || 6001
+    p2pPort: _p2pPort || 6001
 });
 
 node.start();
