@@ -9,8 +9,8 @@ class Chain {
         const __dirname = path.dirname(fileURLToPath(import.meta.url));
         this.chain = [];
         this.pendingTransactions = new Map();
-        this.chainDataDir = path.join(__dirname, '../../data'); // 设置数据存储目录
-        this.chainFilePath = path.join(this.chainDataDir, 'chaindata.json'); // 完整的文件路径
+        this.chainDataDir = path.join(__dirname, '../../../data');
+        this.chainFilePath = path.join(this.chainDataDir, 'chaindata.json');
         this.loadChain();
     }
 
@@ -68,10 +68,11 @@ class Chain {
 
     /**
      * 创建新区块
-     * @param {string} validator 验证者地址
+     * @param {string} validatorId 验证者地址
+     * @param {string} validatorPubKey 验证者公钥
      * @param {string} signature 验证者签名
      */
-    createBlock(validator, signature) {
+    createBlock(validatorId, validatorPubKey, signature) {
         const now = Date.now();
 
         const transactions = Array.from(this.pendingTransactions.values());
@@ -81,13 +82,15 @@ class Chain {
             timestamp: now,
             transactions,
             previousHash: previousBlock.hash,
-            validator,
+            validatorId,
+            validatorPubKey,
             signature
         });
 
         if (this.isValidBlock(newBlock, previousBlock)) {
             this.chain.push(newBlock);
             this.pendingTransactions.clear();
+            this.saveChain();
             return newBlock;
         }
 
@@ -157,6 +160,7 @@ class Chain {
         this.chain = newChain;
         // 清理交易池中已经包含在新链中的交易
         this.cleanTransactionPool(newChain);
+        this.saveChain();
     }
 
     /**

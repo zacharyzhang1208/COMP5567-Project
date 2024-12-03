@@ -157,6 +157,18 @@ class Block {
 
         return true;
     }
+
+    toJSON() {
+        return {
+            timestamp: this.timestamp,
+            transactions: this.transactions,
+            previousHash: this.previousHash,
+            validatorId: this.validatorId,
+            validatorPubKey: this.validatorPubKey,
+            signature: this.signature,
+            hash: this.hash
+        };
+    }
 }
 
 export default Block; 

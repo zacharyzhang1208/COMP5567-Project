@@ -38,21 +38,23 @@ class TeacherNode {
     }
 
     start() {
-        const { publicKey, privateKey } = CryptoUtil.generateKeyPair('user1', 'password');
+        const { publicKey, privateKey } = CryptoUtil.generateKeyPair('root', 'password');
         console.log("publicKey is", publicKey);
         console.log("privateKey is", privateKey);
         
         const userRegTx = new UserRegistrationTransaction({
-            userId: 'user1',
+            userId: 'root',
             userType: 'TEACHER',
             publicKey: publicKey
         });
 
         console.log("userRegTx is", userRegTx);
+        const signature = CryptoUtil.sign(userRegTx.hash, privateKey);
+        const isValid = CryptoUtil.verify(userRegTx.hash, signature, publicKey);
 
         this.messageHandler.handleNewTransaction(userRegTx);
 
-        const newBlock = this.chain.createBlock('user1', 'signature123');
+        const newBlock = this.chain.createBlock('root', 'signature123');
         console.log('New Block Created:', newBlock);
 
         if (this.chain.isValidChain()) {
@@ -61,6 +63,7 @@ class TeacherNode {
             console.log('Blockchain is not valid');
         }
     }
+
 }
 
 const node = new TeacherNode();
