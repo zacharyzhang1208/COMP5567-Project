@@ -1,15 +1,24 @@
-import fs from 'fs';
+import { Level } from 'level';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'fs';
 import Block from './Block.js';
 
 class Chain {
     constructor() {
-        const __dirname = path.dirname(fileURLToPath(import.meta.url));
+        // 确保数据目录存在
+        const dataDir = path.join(process.cwd(), '.data');
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+
+        // 初始化数据库
+        const dbPath = path.join(process.cwd(), '.data', 'chain');
+        this.db = new Level(dbPath);
+
         this.chain = [];
         this.pendingTransactions = new Map();
-        this.chainDataDir = path.join(__dirname, '../../../data');
-        this.chainFilePath = path.join(this.chainDataDir, 'chaindata.json');
+        this.chainDataDir = path.join(process.cwd(), '.data');
+        this.chainFilePath = path.join(this.chainDataDir, 'chain.json');
         this.loadChain();
     }
 

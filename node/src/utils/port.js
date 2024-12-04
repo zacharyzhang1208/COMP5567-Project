@@ -43,16 +43,16 @@ class PortUtils {
     }
 
     /**
-     * 检查指定端口是否可用
+     * Check if the specified port is available
      */
     static async isPortAvailable(port) {
-        // 1. 检查锁文件
+        // 1. Check the lock file
         if (!await this.lockPort(port)) {
             console.log(`[Port] Port ${port} is locked`);
             return false;
         }
 
-        // 2. 简单的端口检测
+        // 2. Simple port check
         return new Promise((resolve) => {
             const server = net.createServer();
             
@@ -99,17 +99,42 @@ class PortUtils {
             fs.rmdirSync(this.LOCKS_DIR);
             console.log('[Port] Removed empty locks directory');
         } catch (err) {
-            // 忽略目录不为空或不存在的错误
+            // Ignore the directory not empty or not exist error
         }
     }
 }
 
-// 进程退出处理
-process.on('exit', () => PortUtils.cleanupLocks());
+/**
+ * Process Exit Handlers
+ * 
+ * We need to handle different types of process termination to ensure proper cleanup:
+ * 
+ * 1. 'exit': Normal process exit
+ *    - Emitted when process is about to exit
+ *    - Only synchronous operations allowed
+ *    - Last chance for cleanup
+ * 
+ * 2. 'SIGINT': Interrupt signal
+ *    - Typically triggered by Ctrl+C
+ *    - Allows async operations
+ *    - Must call process.exit() manually
+ * 
+ * 3. 'SIGTERM': Termination signal
+ *    - External termination request
+ *    - Common in development (nodemon) and production (Docker)
+ *    - Allows async operations
+ *    - Must call process.exit() manually
+ */
+
+process.on('exit', () => {
+    PortUtils.cleanupLocks();
+});
+
 process.on('SIGINT', () => {
     PortUtils.cleanupLocks();
     process.exit();
 });
+
 process.on('SIGTERM', () => {
     PortUtils.cleanupLocks();
     process.exit();
