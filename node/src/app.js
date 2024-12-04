@@ -11,18 +11,18 @@ class TeacherNode {
         this.knownPeers = new Set();
         this.port = null;
         this.status = 'created';
+        this.p2pServer = new P2PServer(this);
+        this.chain = new Chain(this);
     }
 
     async initialize() {
         try {
             this.status = 'initializing';
-            this.p2pServer = new P2PServer(this);
             
             await this.p2pServer.initialize();
 
             console.log(`[Node] Initialized with port: ${this.port}`);
             
-            this.chain = new Chain(this);
             await this.chain.initialize();
             
             this.status = 'initialized';
