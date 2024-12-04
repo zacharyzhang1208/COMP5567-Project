@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import Transactions from './Transactions.js';
+import Transactions from './transaction.js';
 import CryptoUtil from '../../utils/crypto.js';
 
 class Block {

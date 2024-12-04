@@ -1,8 +1,8 @@
 import { WebSocket } from 'ws';
-import Chain from './core/blockchain/Chain.js';
-import MessageHandler, { MESSAGE_TYPES } from './network/MessageHandler.js';
+import Chain from './core/blockchain/chain.js';
+import MessageHandler, { MESSAGE_TYPES } from './network/message.handler.js';
 import P2PServer from './network/p2p.server.js';
-import { UserRegistrationTransaction } from './core/blockchain/Transactions.js';
+import { UserRegistrationTransaction } from './core/blockchain/transaction.js';
 import CryptoUtil from './utils/crypto.js';
 import { envConfig } from '../config/env.config.js';
 import PortUtils from './utils/port.js';

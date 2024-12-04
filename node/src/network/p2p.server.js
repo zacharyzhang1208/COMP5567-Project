@@ -1,5 +1,5 @@
 import { WebSocketServer, WebSocket } from 'ws';
-import { MESSAGE_TYPES } from './MessageHandler.js';
+import { MESSAGE_TYPES } from './message.handler.js';
 import PortUtils from '../utils/port.js';
 import { envConfig } from '../../config/env.config.js';
 

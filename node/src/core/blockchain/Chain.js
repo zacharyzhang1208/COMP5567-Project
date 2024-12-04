@@ -1,7 +1,7 @@
 import { Level } from 'level';
 import path from 'path';
 import fs from 'fs';
-import Block from './Block.js';
+import Block from './block.js';
 
 class Chain {
     constructor(node) {

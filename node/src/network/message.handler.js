@@ -1,6 +1,5 @@
-import { BaseTransaction, UserRegistrationTransaction, CourseCreationTransaction } from '../core/blockchain/Transactions.js';
-import Block from '../core/blockchain/Block.js';
-import WebSocket from 'ws';
+import { BaseTransaction, UserRegistrationTransaction, CourseCreationTransaction } from '../core/blockchain/transaction.js';
+import Block from '../core/blockchain/block.js';
 
 // 定义消息类型
 export const MESSAGE_TYPES = {
