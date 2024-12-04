@@ -24,6 +24,12 @@ class MessageHandler {
      * 处理接收到的消息
      */
     handleMessage(message, sender) {
+        // 检查消息发送者
+        if (message.sender && message.sender.port === this.node.port) {
+            console.log('[P2P] Ignoring message from self');
+            return;
+        }
+
         console.log(`[P2P] Received message: ${JSON.stringify(message)}`);
         try {
             switch (message.type) {
@@ -59,17 +65,7 @@ class MessageHandler {
      */
     handleNewTransaction(transaction) {
         try {
-            // 如果传入的是已经实例化的交易对象
-            if (transaction instanceof BaseTransaction) {
-                if (!transaction.isValid()) {
-                    throw new Error('Transaction is invalid');
-                }
-                this.chain.addTransaction(transaction);
-                this.broadcastTransaction(transaction);
-                return;
-            }
-
-            // 如果传入的是JSON数据（来自网络消息），则需要实例化
+            // 传入的是JSON数据（来自网络消息），需要实例化
             let newTransaction;
             switch (transaction.type) {
                 case 'USER_REGISTRATION':
@@ -82,7 +78,6 @@ class MessageHandler {
                 throw new Error('Transaction is invalid');
             }
             this.chain.addTransaction(newTransaction);
-            this.broadcastTransaction(newTransaction);
         } catch (error) {
             console.error('Error handling new transaction:', error);
         }
@@ -132,6 +127,7 @@ class MessageHandler {
      * 广播交易
      */
     broadcastTransaction(transaction) {
+        console.log("broadcastTransaction", transaction);
         this.broadcast({
             type: MESSAGE_TYPES.NEW_TRANSACTION,
             data: transaction.toJSON()
@@ -152,8 +148,16 @@ class MessageHandler {
      * 广播消息给所有节点
      */
     broadcast(message) {
+        // 添加发送者标识
+        const messageWithSender = {
+            ...message,
+            sender: {
+                port: this.node.port
+            }
+        };
+        console.log("peers", this.node.peers);
         this.node.peers.forEach(peer => {
-            this.sendMessage(peer, message);
+            this.sendMessage(peer, messageWithSender);
         });
     }
 

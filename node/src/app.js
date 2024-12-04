@@ -7,8 +7,8 @@ import CryptoUtil from './utils/crypto.js';
 class TeacherNode {
     constructor() {
         this.messageHandler = new MessageHandler(this);
-        this.peers = new Set();
-        this.knownPeers = new Set();
+        this.peers = new Set(); //连接到本节点的节点
+        this.knownPeers = new Set(); //已知的节点
         this.status = 'created';
     }
 
@@ -38,6 +38,7 @@ class TeacherNode {
         try {
             this.status = 'starting';
             
+            //test code
             const { publicKey, privateKey } = CryptoUtil.generateKeyPair('root', 'password');
             
             const userRegTx = new UserRegistrationTransaction({
@@ -50,11 +51,13 @@ class TeacherNode {
             userRegTx.signature = signature;
             const isValid = CryptoUtil.verify(userRegTx.hash, signature, publicKey);
 
-            //await this.messageHandler.handleNewTransaction(userRegTx);
+            this.chain.addTransaction(userRegTx);
+            await this.messageHandler.broadcastTransaction(userRegTx);
             
             if (!this.chain.isValidChain()) {
                 throw new Error('Blockchain validation failed');
             }
+            //test code end
 
             this.status = 'running';
             console.log('[Node] Node is running');
