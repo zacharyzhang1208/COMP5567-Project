@@ -210,7 +210,7 @@ class MessageHandler {
             if (!this.node.knownPeers.has(peerAddress)) {
                 this.node.knownPeers.add(peerAddress);
                 // 尝试连接到新发现的节点
-                this.node.connectToPeer(peerAddress);
+                this.node.p2pServer.connectToPeer(peerAddress);
             }
         });
     }
