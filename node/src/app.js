@@ -1,4 +1,4 @@
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import Chain from './core/blockchain/Chain.js';
 import MessageHandler from './network/MessageHandler.js';
 import { UserRegistrationTransaction, CourseCreationTransaction } from './core/blockchain/Transactions.js';
@@ -11,6 +11,7 @@ class TeacherNode {
         this.chain = new Chain();
         this.messageHandler = new MessageHandler(this);
         this.peers = new Set();
+        this.knownPeers = new Set();
         this.status = 'created';
     }
 
@@ -29,6 +30,9 @@ class TeacherNode {
 
             await this.waitForServerReady();
             console.log('[Node] Server is ready');
+
+            await this.connectToNetwork();
+            console.log('[Node] Network discovery completed');
 
             this.status = 'initialized';
             return true;
@@ -128,6 +132,57 @@ class TeacherNode {
             console.error('[Node] Failed to start node:', error.message);
             throw error;
         }
+    }
+
+    async connectToNetwork() {
+        const networkConfig = envConfig.getNetworkConfig();
+        const { start, end } = networkConfig.portRange;
+        
+        console.log(`[P2P] Scanning for peers in port range ${start}-${end}`);
+        
+        const connectionPromises = [];
+        
+        for (let p = start; p <= end; p++) {
+            if (p === this.port) continue;
+            
+            connectionPromises.push(
+                new Promise((resolve) => {
+                    try {
+                        const ws = new WebSocket(`ws://localhost:${p}`);
+                        
+                        // 设置连接超时
+                        const timeout = setTimeout(() => {
+                            ws.close();
+                            resolve();
+                        }, 1000);
+
+                        ws.on('open', () => {
+                            clearTimeout(timeout);
+                            console.log(`[P2P] Connected to peer on port ${p}`);
+                            this.peers.add(ws);
+                            this.knownPeers.add(`ws://localhost:${p}`);
+                            
+                            this.messageHandler.sendMessage(ws, {
+                                type: 'HANDSHAKE',
+                                data: { port: this.port }
+                            });
+                            resolve();
+                        });
+
+                        ws.on('error', () => {
+                            clearTimeout(timeout);
+                            resolve();
+                        });
+                    } catch (err) {
+                        resolve();
+                    }
+                })
+            );
+        }
+
+        // 等待所有连接尝试完成
+        await Promise.all(connectionPromises);
+        console.log('[P2P] Network scan completed');
     }
 
 }
