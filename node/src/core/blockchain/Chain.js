@@ -149,28 +149,45 @@ class Chain {
 
     /**
      * 替换链（在收到更长的有效链时）
-     * @param {Array<Block>} newChain 
+     * @param {Object} chainData 包含 chain 和 pendingTransactions
      */
-    replaceChain(newChain) {
+    replaceChain(chainData) {
+        const { chain: newChain, pendingTransactions } = chainData;
+
+        // 将 JSON 数据转换为 Block 对象
+        const newBlockChain = newChain.map(blockData => new Block(blockData));
+
         // 新链必须更长
-        if (newChain.length <= this.chain.length) {
+        if (newBlockChain.length < this.chain.length) {
             throw new Error('New chain must be longer');
         }
-
+        // 新链长度与当前链相同，忽略
+        else if (newBlockChain.length === this.chain.length) { 
+            console.log('New chain is the same length as current chain, ignore');
+            return;
+        }
         // 验证新链
-        for (let i = 1; i < newChain.length; i++) {
-            const block = newChain[i];
-            const previousBlock = newChain[i - 1];
-            
-            if (!this.isValidBlock(block, previousBlock)) {
-                throw new Error('Invalid chain');
+        else{
+            for (let i = 1; i < newBlockChain.length; i++) {
+                const block = newBlockChain[i];
+                const previousBlock = newBlockChain[i - 1];
+                if (!this.isValidBlock(block, previousBlock)) {
+                    throw new Error('Invalid chain');
+                }
             }
         }
 
         // 替换链
-        this.chain = newChain;
+        this.chain = newBlockChain;
+        
+        // 更新待处理交易池
+        this.pendingTransactions.clear();
+        pendingTransactions.forEach(tx => {
+            this.pendingTransactions.set(tx.hash, tx);
+        });
+
         // 清理交易池中已经包含在新链中的交易
-        this.cleanTransactionPool(newChain);
+        this.cleanTransactionPool(newBlockChain);
         this.saveChain();
     }
 

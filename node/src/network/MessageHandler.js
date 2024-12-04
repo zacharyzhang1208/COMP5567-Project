@@ -122,6 +122,7 @@ class MessageHandler {
     handleChainResponse(chainData) {
         try {
             // 验证并可能替换当前链
+            console.log("chainData", chainData);
             this.chain.replaceChain(chainData);
         } catch (error) {
             console.error('Error handling chain response:', error);
@@ -191,10 +192,10 @@ class MessageHandler {
         });
 
         // 请求区块链数据
-        // console.log(`[P2P] Requesting chain from peer on port ${port}`);
-        // this.sendMessage(sender, {
-        //     type: MESSAGE_TYPES.REQUEST_CHAIN
-        // });
+        console.log(`[P2P] Requesting chain from peer on port ${port}`);
+        this.sendMessage(sender, {
+            type: MESSAGE_TYPES.REQUEST_CHAIN
+        });
     }
 
     /**
