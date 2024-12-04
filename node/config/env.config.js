@@ -15,24 +15,16 @@ class EnvConfigError extends Error {
 
 /**
  * Environment configuration manager class
- * Handles loading and validation of environment variables
  */
 class EnvironmentConfig {
-	/**
-	 * Initialize the environment configuration
-	 * Sets up required environment variables and performs initial validation
-	 */
 	constructor() {
 		this.requiredEnvVars = [
-			'P2P_PORT',
+			'P2P_PORT_START',
+			'P2P_PORT_END'
 		];
 		this.init();
 	}
 
-	/**
-	 * Initialize the configuration
-	 * Performs the complete setup process in the correct order
-	 */
 	init() {
 		try {
 			this.checkEnvFile();
@@ -104,12 +96,29 @@ class EnvironmentConfig {
 	 * @throws {EnvConfigError} If any required environment variables are missing
 	 */
 	validateEnv() {
+		// 检查必需的环境变量
 		const missingEnvVars = this.requiredEnvVars.filter(
 			envVar => !process.env[envVar]
 		);
 
 		if (missingEnvVars.length > 0) {
 			throw new EnvConfigError(`Missing required variables: ${missingEnvVars.join(', ')}`);
+		}
+
+		// 验证端口范围的有效性
+		const startPort = parseInt(process.env.P2P_PORT_START);
+		const endPort = parseInt(process.env.P2P_PORT_END);
+
+		if (isNaN(startPort) || isNaN(endPort)) {
+			throw new EnvConfigError('Port range values must be numbers');
+		}
+
+		if (startPort >= endPort) {
+			throw new EnvConfigError('P2P_PORT_START must be less than P2P_PORT_END');
+		}
+
+		if (startPort < 1024 || endPort > 65535) {
+			throw new EnvConfigError('Port range must be between 1024 and 65535');
 		}
 	}
 
@@ -128,7 +137,10 @@ class EnvironmentConfig {
 	 */
 	getNetworkConfig() {
 		return {
-			port: this.get('P2P_PORT')
+			portRange: {
+				start: parseInt(process.env.P2P_PORT_START),
+				end: parseInt(process.env.P2P_PORT_END)
+			}
 		};
 	}
 }
