@@ -6,6 +6,7 @@ import { envConfig } from '../../config/env.config.js';
 class P2PServer {
     constructor(node) {
         this.node = node;
+        this.port = null;
     }
 
     async initialize() {
@@ -14,12 +15,11 @@ class P2PServer {
         const networkConfig = envConfig.getNetworkConfig();
         const { start, end } = networkConfig.portRange;
         
-        this.node.port = await PortUtils.findAvailablePort(start, end);
-        console.log(`[Node] Found available port: ${this.node.port}`);
+        this.port = await PortUtils.findAvailablePort(start, end);
 
         // 启动服务器
         await this.start();
-        console.log(`[Node] P2P server started on port ${this.node.port}`);
+        console.log(`[Node] P2P server started on port ${this.port}`);
         console.log('[Node] Server is ready');
 
         // 等待一段时间确保服务器完全就绪
@@ -31,7 +31,7 @@ class P2PServer {
     }
 
     async start() {
-        const server = new WebSocketServer({ port: this.node.port });
+        const server = new WebSocketServer({ port: this.port });
         this.server = server;
         
         server.on('connection', socket => {
@@ -58,9 +58,8 @@ class P2PServer {
         
         console.log(`[P2P] Scanning for peers in port range ${start}-${end}`);
         const connectionPromises = [];
-        
         for (let p = start; p <= end; p++) {
-            if (p === this.node.port) continue;
+            if (p === this.port) continue;
             connectionPromises.push(this.connectToPeer(`ws://localhost:${p}`));
         }
 

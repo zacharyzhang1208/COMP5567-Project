@@ -7,20 +7,25 @@ import CryptoUtil from './utils/crypto.js';
 class TeacherNode {
     constructor() {
         this.messageHandler = new MessageHandler(this);
-        this.peers = new Set(); //连接到本节点的节点
-        this.knownPeers = new Set(); //已知的节点
+        this.peers = new Set();
+        this.knownPeers = new Set();
+        this.port = null;
         this.status = 'created';
     }
 
     async initialize() {
         try {
             this.status = 'initializing';
+            this.p2pServer = new P2PServer(this);
+            
+            await this.p2pServer.initialize();
+            this.port = this.p2pServer.port;
+
+            console.log(`[Node] Initialized with port: ${this.port}`);
             
             this.chain = new Chain(this);
+            await this.chain.initialize();
             
-            this.p2pServer = new P2PServer(this);
-            await this.p2pServer.initialize();
-
             this.status = 'initialized';
             return true;
         } catch (error) {
@@ -53,6 +58,7 @@ class TeacherNode {
 
             this.chain.addTransaction(userRegTx);
             await this.messageHandler.broadcastTransaction(userRegTx);
+            await this.chain.saveChain();
             
             if (!this.chain.isValidChain()) {
                 throw new Error('Blockchain validation failed');

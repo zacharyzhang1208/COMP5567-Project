@@ -155,7 +155,6 @@ class MessageHandler {
                 port: this.node.port
             }
         };
-        console.log("peers", this.node.peers);
         this.node.peers.forEach(peer => {
             this.sendMessage(peer, messageWithSender);
         });

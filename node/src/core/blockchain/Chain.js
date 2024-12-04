@@ -15,32 +15,52 @@ class Chain {
         }
 
         // 初始化数据库
-        const dbPath = path.join(nodeDataDir, 'chain');
+        const dbPath = path.join(nodeDataDir, 'chain.data');
         this.db = new Level(dbPath);
 
         this.chain = [];
         this.pendingTransactions = new Map();
-        this.chainDataDir = nodeDataDir;
-        this.chainFilePath = path.join(this.chainDataDir, 'chain.json');
-        this.loadChain();
     }
 
-    saveChain() {
-        // 确保数据目录存在
-        if (!fs.existsSync(this.chainDataDir)) {
-            fs.mkdirSync(this.chainDataDir, { recursive: true });
+    async initialize() {
+        await this.loadChain();
+    }
+
+    async saveChain() {
+        try {
+            // 保存区块链数据
+            await this.db.put('chain', JSON.stringify(this.chain.map(block => block.toJSON())));
+            // 保存待处理交易
+            await this.db.put('pending', JSON.stringify(Array.from(this.pendingTransactions.values())));
+        } catch (error) {
+            console.error('Error saving chain:', error);
         }
-        // 保存链数据到文件
-        fs.writeFileSync(this.chainFilePath, JSON.stringify(this.chain.map(block => block.toJSON()), null, 2));
     }
 
-    loadChain() {
-        if (fs.existsSync(this.chainFilePath)) {
-            const chainData = JSON.parse(fs.readFileSync(this.chainFilePath, 'utf8'));
-            this.chain = chainData.map(data => new Block(data));
-        } else {
-            console.log("no chain data file, create a new genesis block");
-            this.chain = [this.createGenesisBlock()]; // 如果没有数据文件，创建创世区块
+    async loadChain() {
+        try {
+            // 加载区块链数据
+            const chainData = await this.db.get('chain');
+            const parsedChainData = JSON.parse(chainData);
+            console.log("parsedChainData", parsedChainData);
+            this.chain = parsedChainData.map(data => new Block(data));
+            
+            // 加载待处理交易
+            const pendingData = await this.db.get('pending');
+            const parsedPendingData = JSON.parse(pendingData);
+            console.log("parsedPendingData", parsedPendingData);
+            parsedPendingData.forEach(tx => {
+                this.pendingTransactions.set(tx.hash, tx);
+            });
+        } catch (error) {
+            if (error.code === 'LEVEL_NOT_FOUND') {
+                console.log("no chain data file, create a new genesis block");
+                this.chain = [this.createGenesisBlock()];
+                // 保存创世区块
+                await this.saveChain();
+            } else {
+                console.error('Error loading chain:', error);
+            }
         }
     }
 
