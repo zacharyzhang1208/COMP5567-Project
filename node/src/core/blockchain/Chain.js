@@ -2,6 +2,7 @@ import { Level } from 'level';
 import path from 'path';
 import fs from 'fs';
 import Block from './block.js';
+import { MESSAGE_TYPES } from '../../network/message.handler.js';
 
 class Chain {
     // 定义统一的创世区块
@@ -31,6 +32,20 @@ class Chain {
         const dbPath = path.join(nodeDataDir, 'chain.data');
         this.db = new Level(dbPath);
         await this.loadChain();
+        await this.synchronizeChain();
+        console.log("chain initialized");
+        console.log(this.chainData.length);
+        console.log(this.pendingTransactions.size);
+    }
+
+    async synchronizeChain() {
+        if (this.node.peers.size > 0) {
+            console.log('[Chain] Starting chain synchronization');
+            const randomPeer = Array.from(this.node.peers)[0];
+            this.node.messageHandler.sendMessage(randomPeer, {
+                type: MESSAGE_TYPES.REQUEST_CHAIN
+            });
+        }
     }
 
     async saveChain() {
@@ -46,6 +61,7 @@ class Chain {
 
     async loadChain() {
         try {
+            console.log("loading chain");
             const chainData = await this.db.get('chain');
             const parsedChainData = JSON.parse(chainData);
             
@@ -180,13 +196,9 @@ class Chain {
         if (newBlockChain.length < this.chainData.length) {
             throw new Error('New chain must be longer');
         }
-        // 新链长度与当前链相同，忽略
-        else if (newBlockChain.length === this.chainData.length) { 
-            console.log('New chain is the same length as current chain, ignore');
-            return;
-        }
-        // 验证新链
+        // 验证新链       
         else{
+            console.log("validating new chain");
             for (let i = 1; i < newBlockChain.length; i++) {
                 const block = newBlockChain[i];
                 const previousBlock = newBlockChain[i - 1];

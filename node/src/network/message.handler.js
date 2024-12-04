@@ -103,11 +103,15 @@ class MessageHandler {
      * 处理链请求
      */
     handleChainRequest(sender) {
-        console.log("handleChainRequest", this.chain);
-        const chainData = this.chain.toJSON();
+        const data = {
+            chain: this.node.chain.chainData,
+            pendingTransactions: Array.from(this.node.chain.pendingTransactions.values())
+        };
+        //console.log("handleChainRequest - sending chain data:", data);
+        
         this.sendMessage(sender, {
             type: MESSAGE_TYPES.SEND_CHAIN,
-            data: chainData
+            data: data
         });
     }
 
@@ -117,7 +121,7 @@ class MessageHandler {
     handleChainResponse(chainData) {
         try {
             // 验证并可能替换当前链
-            console.log("chainData", chainData);
+            //console.log("chainData", chainData);
             this.chain.replaceChain(chainData);
         } catch (error) {
             console.error('Error handling chain response:', error);

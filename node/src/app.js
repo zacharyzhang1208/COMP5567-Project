@@ -19,7 +19,6 @@ class TeacherNode {
             this.p2pServer = new P2PServer(this);
             
             await this.p2pServer.initialize();
-            this.port = this.p2pServer.port;
 
             console.log(`[Node] Initialized with port: ${this.port}`);
             
