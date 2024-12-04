@@ -2,6 +2,7 @@ import { BaseTransaction, UserRegistrationTransaction, CourseCreationTransaction
 import Block from '../core/blockchain/Block.js';
 import WebSocket from 'ws';
 
+// test 12.4 17:40
 // 定义消息类型
 export const MESSAGE_TYPES = {
     NEW_TRANSACTION: 'NEW_TRANSACTION',
