@@ -28,6 +28,9 @@ class P2PServer {
         // 连接到网络
         await this.connectToNetwork();
         console.log('[Node] Network discovery completed');
+
+        // 在所有连接建立后同步区块链
+        await this.synchronizeChain();
     }
 
     async start() {
@@ -92,7 +95,7 @@ class P2PServer {
                     
                     this.node.messageHandler.sendMessage(ws, {
                         type: MESSAGE_TYPES.HANDSHAKE,
-                        data: { port: this.node.port }
+                        data: { port: this.port }
                     });
                     
                     ws.on('message', (message) => {
@@ -131,6 +134,16 @@ class P2PServer {
             }
             this.server.once('listening', () => resolve());
         });
+    }
+
+    async synchronizeChain() {
+        if (this.node.peers.size > 0) {
+            console.log('[P2P] Starting chain synchronization');
+            const randomPeer = Array.from(this.node.peers)[0];
+            this.node.messageHandler.sendMessage(randomPeer, {
+                type: MESSAGE_TYPES.REQUEST_CHAIN
+            });
+        }
     }
 }
 

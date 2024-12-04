@@ -4,32 +4,39 @@ import fs from 'fs';
 import Block from './block.js';
 
 class Chain {
+    // 定义统一的创世区块
+    static GENESIS_BLOCK = new Block({
+        timestamp: 1701676800000,  // 2023-12-04 12:00:00 UTC
+        transactions: [],
+        previousHash: '0',
+        validatorId: 'genesis',
+        validatorPubKey: '',
+        signature: '',
+        hash: '000000000000000000000000000000000000000000000000000000000000genesis'  // 固定哈希
+    });
+
     constructor(node) {
         this.node = node;
-        // 使用端口号来区分不同节点的数据目录
-        const nodeDataDir = path.join(process.cwd(), '.data', `node-${this.node.port}`);
-        
-        // 确保节点特定的数据目录存在
-        if (!fs.existsSync(nodeDataDir)) {
-            fs.mkdirSync(nodeDataDir, { recursive: true });
-        }
-
-        // 初始化数据库
-        const dbPath = path.join(nodeDataDir, 'chain.data');
-        this.db = new Level(dbPath);
-
-        this.chain = [];
+        this.chainData = [];
         this.pendingTransactions = new Map();
     }
 
     async initialize() {
+        const nodeDataDir = path.join(process.cwd(), '.data', `node-${this.node.port}`);
+        
+        if (!fs.existsSync(nodeDataDir)) {
+            fs.mkdirSync(nodeDataDir, { recursive: true });
+        }
+
+        const dbPath = path.join(nodeDataDir, 'chain.data');
+        this.db = new Level(dbPath);
         await this.loadChain();
     }
 
     async saveChain() {
         try {
             // 保存区块链数据
-            await this.db.put('chain', JSON.stringify(this.chain.map(block => block.toJSON())));
+            await this.db.put('chain', JSON.stringify(this.chainData.map(block => block.toJSON())));
             // 保存待处理交易
             await this.db.put('pending', JSON.stringify(Array.from(this.pendingTransactions.values())));
         } catch (error) {
@@ -39,49 +46,41 @@ class Chain {
 
     async loadChain() {
         try {
-            // 加载区块链数据
             const chainData = await this.db.get('chain');
             const parsedChainData = JSON.parse(chainData);
-            console.log("parsedChainData", parsedChainData);
-            this.chain = parsedChainData.map(data => new Block(data));
             
-            // 加载待处理交易
+            // 验证第一个区块是否是正确的创世区块
+            if (parsedChainData[0].hash !== Chain.GENESIS_BLOCK.hash) {
+                throw new Error('Invalid genesis block');
+            }
+            
+            this.chainData = parsedChainData.map(data => new Block(data));
+            
             const pendingData = await this.db.get('pending');
             const parsedPendingData = JSON.parse(pendingData);
-            console.log("parsedPendingData", parsedPendingData);
             parsedPendingData.forEach(tx => {
                 this.pendingTransactions.set(tx.hash, tx);
             });
         } catch (error) {
             if (error.code === 'LEVEL_NOT_FOUND') {
-                console.log("no chain data file, create a new genesis block");
-                this.chain = [this.createGenesisBlock()];
-                // 保存创世区块
+                console.log("[Chain] No existing chain found, starting with genesis block");
+                this.chainData = [Chain.GENESIS_BLOCK];
                 await this.saveChain();
+            } else if (error.message === 'Invalid genesis block') {
+                console.error('[Chain] Invalid genesis block detected');
+                throw error;
             } else {
                 console.error('Error loading chain:', error);
+                throw error;
             }
         }
-    }
-
-    /**
-     * 创建创世区块
-     */
-    createGenesisBlock() {
-        return new Block({
-            timestamp: Date.now(),
-            transactions: [],
-            previousHash: '0',
-            validator: 'genesis',
-            signature: ''
-        });
     }
 
     /**
      * 获取最新的区块
      */
     getLatestBlock() {
-        return this.chain[this.chain.length - 1];
+        return this.chainData[this.chainData.length - 1];
     }
 
     /**
@@ -119,7 +118,7 @@ class Chain {
         });
 
         if (this.isValidBlock(newBlock, previousBlock)) {
-            this.chain.push(newBlock);
+            this.chainData.push(newBlock);
             this.pendingTransactions.clear();
             this.saveChain();
             return newBlock;
@@ -156,9 +155,9 @@ class Chain {
      * 验证整个链的有效性
      */
     isValidChain() {
-        for (let i = 1; i < this.chain.length; i++) {
-            const currentBlock = this.chain[i];
-            const previousBlock = this.chain[i - 1];
+        for (let i = 1; i < this.chainData.length; i++) {
+            const currentBlock = this.chainData[i];
+            const previousBlock = this.chainData[i - 1];
 
             if (!this.isValidBlock(currentBlock, previousBlock)) {
                 return false;
@@ -178,11 +177,11 @@ class Chain {
         const newBlockChain = newChain.map(blockData => new Block(blockData));
 
         // 新链必须更长
-        if (newBlockChain.length < this.chain.length) {
+        if (newBlockChain.length < this.chainData.length) {
             throw new Error('New chain must be longer');
         }
         // 新链长度与当前链相同，忽略
-        else if (newBlockChain.length === this.chain.length) { 
+        else if (newBlockChain.length === this.chainData.length) { 
             console.log('New chain is the same length as current chain, ignore');
             return;
         }
@@ -198,7 +197,7 @@ class Chain {
         }
 
         // 替换链
-        this.chain = newBlockChain;
+        this.chainData = newBlockChain;
         
         // 更新待处理交易池
         this.pendingTransactions.clear();
@@ -238,7 +237,7 @@ class Chain {
      */
     toJSON() {
         return {
-            chain: this.chain.map(block => block.toJSON()),
+            chain: this.chainData.map(block => block.toJSON()),
             pendingTransactions: Array.from(this.pendingTransactions.values()).map(tx => tx.toJSON())
         };
     }

@@ -103,6 +103,7 @@ class MessageHandler {
      * 处理链请求
      */
     handleChainRequest(sender) {
+        console.log("handleChainRequest", this.chain);
         const chainData = this.chain.toJSON();
         this.sendMessage(sender, {
             type: MESSAGE_TYPES.SEND_CHAIN,
@@ -181,22 +182,14 @@ class MessageHandler {
 
         // 记录新的对等节点
         this.node.knownPeers.add(`ws://localhost:${port}`);
-        console.log(`[P2P] Current known peers: ${Array.from(this.node.knownPeers)}`);
 
         // 发送握手响应
-        console.log(`[P2P] Sending handshake response to peer on port ${port}`);
         this.sendMessage(sender, {
             type: MESSAGE_TYPES.HANDSHAKE_RESPONSE,
             data: {
                 port: this.node.port,
                 peers: Array.from(this.node.knownPeers)
             }
-        });
-
-        // 请求区块链数据
-        console.log(`[P2P] Requesting chain from peer on port ${port}`);
-        this.sendMessage(sender, {
-            type: MESSAGE_TYPES.REQUEST_CHAIN
         });
     }
 
