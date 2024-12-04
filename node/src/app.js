@@ -8,7 +8,6 @@ import PortUtils from './utils/port.js';
 
 class TeacherNode {
     constructor() {
-        this.chain = new Chain();
         this.messageHandler = new MessageHandler(this);
         this.peers = new Set();
         this.knownPeers = new Set();
@@ -25,6 +24,8 @@ class TeacherNode {
             this.port = await PortUtils.findAvailablePort(start, end);
             console.log(`[Node] Found available port: ${this.port}`);
 
+            this.chain = new Chain(this);
+            
             this.setupP2PServer();
             console.log(`[Node] P2P server started on port ${this.port}`);
 

@@ -4,20 +4,23 @@ import fs from 'fs';
 import Block from './Block.js';
 
 class Chain {
-    constructor() {
-        // 确保数据目录存在
-        const dataDir = path.join(process.cwd(), '.data');
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
+    constructor(node) {
+        this.node = node;
+        // 使用端口号来区分不同节点的数据目录
+        const nodeDataDir = path.join(process.cwd(), '.data', `node-${this.node.port}`);
+        
+        // 确保节点特定的数据目录存在
+        if (!fs.existsSync(nodeDataDir)) {
+            fs.mkdirSync(nodeDataDir, { recursive: true });
         }
 
         // 初始化数据库
-        const dbPath = path.join(process.cwd(), '.data', 'chain');
+        const dbPath = path.join(nodeDataDir, 'chain');
         this.db = new Level(dbPath);
 
         this.chain = [];
         this.pendingTransactions = new Map();
-        this.chainDataDir = path.join(process.cwd(), '.data');
+        this.chainDataDir = nodeDataDir;
         this.chainFilePath = path.join(this.chainDataDir, 'chain.json');
         this.loadChain();
     }

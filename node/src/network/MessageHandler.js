@@ -17,6 +17,10 @@ class MessageHandler {
         this.node = node;  // TeacherNode 实例
     }
 
+    get chain() {
+        return this.node.chain;
+    }
+
     /**
      * 处理接收到的消息
      */
@@ -61,7 +65,7 @@ class MessageHandler {
                 if (!transaction.isValid()) {
                     throw new Error('Transaction is invalid');
                 }
-                this.node.chain.addTransaction(transaction);
+                this.chain.addTransaction(transaction);
                 this.broadcastTransaction(transaction);
                 return;
             }
@@ -78,7 +82,7 @@ class MessageHandler {
             if (!newTransaction.isValid()) {
                 throw new Error('Transaction is invalid');
             }
-            this.node.chain.addTransaction(newTransaction);
+            this.chain.addTransaction(newTransaction);
             this.broadcastTransaction(newTransaction);
         } catch (error) {
             console.error('Error handling new transaction:', error);
@@ -92,7 +96,7 @@ class MessageHandler {
         try {
             const block = new Block(blockData);
             if (block.isValid()) {
-                this.node.chain.addBlock(block);
+                this.chain.addBlock(block);
                 // 广播给其他节点
                 this.broadcastBlock(block);
             }
@@ -105,7 +109,7 @@ class MessageHandler {
      * 处理链请求
      */
     handleChainRequest(sender) {
-        const chainData = this.node.chain.toJSON();
+        const chainData = this.chain.toJSON();
         this.sendMessage(sender, {
             type: MESSAGE_TYPES.SEND_CHAIN,
             data: chainData
@@ -118,7 +122,7 @@ class MessageHandler {
     handleChainResponse(chainData) {
         try {
             // 验证并可能替换当前链
-            this.node.chain.replaceChain(chainData);
+            this.chain.replaceChain(chainData);
         } catch (error) {
             console.error('Error handling chain response:', error);
         }
