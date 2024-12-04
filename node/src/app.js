@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import Chain from './core/blockchain/Chain.js';
-import MessageHandler from './network/MessageHandler.js';
+import MessageHandler, { MESSAGE_TYPES } from './network/MessageHandler.js';
 import { UserRegistrationTransaction, CourseCreationTransaction } from './core/blockchain/Transactions.js';
 import CryptoUtil from './utils/crypto.js';
 import { envConfig } from '../config/env.config.js';
@@ -30,6 +30,8 @@ class TeacherNode {
 
             await this.waitForServerReady();
             console.log('[Node] Server is ready');
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             await this.connectToNetwork();
             console.log('[Node] Network discovery completed');
@@ -99,7 +101,7 @@ class TeacherNode {
             userRegTx.signature = signature;
             const isValid = CryptoUtil.verify(userRegTx.hash, signature, publicKey);
 
-            await this.messageHandler.handleNewTransaction(userRegTx);
+            //await this.messageHandler.handleNewTransaction(userRegTx);
             
             if (!this.chain.isValidChain()) {
                 throw new Error('Blockchain validation failed');
@@ -163,14 +165,28 @@ class TeacherNode {
                             this.knownPeers.add(`ws://localhost:${p}`);
                             
                             this.messageHandler.sendMessage(ws, {
-                                type: 'HANDSHAKE',
+                                type: MESSAGE_TYPES.HANDSHAKE,
                                 data: { port: this.port }
                             });
-                            resolve();
+                        });
+
+                        ws.on('message', (message) => {
+                            const data = JSON.parse(message);
+                            this.messageHandler.handleMessage(data, ws);
+                            
+                            if (data.type === MESSAGE_TYPES.HANDSHAKE_RESPONSE) {
+                                resolve();  // 收到握手响应后才完成连接
+                            }
                         });
 
                         ws.on('error', () => {
                             clearTimeout(timeout);
+                            resolve();
+                        });
+
+                        ws.on('close', () => {
+                            clearTimeout(timeout);
+                            this.peers.delete(ws);
                             resolve();
                         });
                     } catch (err) {
@@ -183,6 +199,41 @@ class TeacherNode {
         // 等待所有连接尝试完成
         await Promise.all(connectionPromises);
         console.log('[P2P] Network scan completed');
+    }
+
+    async connectToPeer(address) {
+        if (address === `ws://localhost:${this.port}`) {
+            return; // 不连接自己
+        }
+        
+        try {
+            console.log(`[P2P] Attempting to connect to discovered peer at ${address}`);
+            const ws = new WebSocket(address);
+            
+            const timeout = setTimeout(() => {
+                ws.close();
+                console.log(`[P2P] Connection timeout for ${address}`);
+            }, 1000);
+
+            ws.on('open', () => {
+                clearTimeout(timeout);
+                console.log(`[P2P] Successfully connected to discovered peer at ${address}`);
+                this.peers.add(ws);
+                this.knownPeers.add(address);
+                
+                this.messageHandler.sendMessage(ws, {
+                    type: MESSAGE_TYPES.HANDSHAKE,
+                    data: { port: this.port }
+                });
+            });
+
+            ws.on('error', () => {
+                clearTimeout(timeout);
+                console.log(`[P2P] Failed to connect to discovered peer at ${address}`);
+            });
+        } catch (err) {
+            console.error(`[P2P] Error connecting to discovered peer at ${address}:`, err.message);
+        }
     }
 
 }

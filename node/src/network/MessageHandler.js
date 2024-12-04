@@ -1,12 +1,15 @@
 import { BaseTransaction, UserRegistrationTransaction, CourseCreationTransaction } from '../core/blockchain/Transactions.js';
 import Block from '../core/blockchain/Block.js';
+import WebSocket from 'ws';
 
 // 定义消息类型
 export const MESSAGE_TYPES = {
     NEW_TRANSACTION: 'NEW_TRANSACTION',
     NEW_BLOCK: 'NEW_BLOCK',
     REQUEST_CHAIN: 'REQUEST_CHAIN',
-    SEND_CHAIN: 'SEND_CHAIN'
+    SEND_CHAIN: 'SEND_CHAIN',
+    HANDSHAKE: 'HANDSHAKE',
+    HANDSHAKE_RESPONSE: 'HANDSHAKE_RESPONSE'
 };
 
 class MessageHandler {
@@ -18,6 +21,7 @@ class MessageHandler {
      * 处理接收到的消息
      */
     handleMessage(message, sender) {
+        console.log(`[P2P] Received message: ${JSON.stringify(message)}`);
         try {
             switch (message.type) {
                 case MESSAGE_TYPES.NEW_TRANSACTION:
@@ -32,11 +36,18 @@ class MessageHandler {
                 case MESSAGE_TYPES.SEND_CHAIN:
                     this.handleChainResponse(message.data);
                     break;
+                case MESSAGE_TYPES.HANDSHAKE:
+                    this.handleHandshake(message.data, sender);
+                    break;
+                case MESSAGE_TYPES.HANDSHAKE_RESPONSE:
+                    this.handleHandshakeResponse(message.data);
+                    break;
                 default:
                     console.warn(`Unknown message type: ${message.type}`);
             }
         } catch (error) {
             console.error('Error handling message:', error);
+            console.error('Message was:', message);
         }
     }
 
@@ -147,10 +158,56 @@ class MessageHandler {
      */
     sendMessage(peer, message) {
         try {
+            console.log(`[P2P] Sending message: ${JSON.stringify(message)}`);
             peer.send(JSON.stringify(message));
         } catch (error) {
             console.error('Error sending message:', error);
         }
+    }
+
+    /**
+     * 处理握手消息
+     */
+    handleHandshake(data, sender) {
+        const { port } = data;
+        console.log(`[P2P] Received handshake from peer on port ${port}`);
+
+        // 记录新的对等节点
+        this.node.knownPeers.add(`ws://localhost:${port}`);
+        console.log(`[P2P] Current known peers: ${Array.from(this.node.knownPeers)}`);
+
+        // 发送握手响应
+        console.log(`[P2P] Sending handshake response to peer on port ${port}`);
+        this.sendMessage(sender, {
+            type: MESSAGE_TYPES.HANDSHAKE_RESPONSE,
+            data: {
+                port: this.node.port,
+                peers: Array.from(this.node.knownPeers)
+            }
+        });
+
+        // 请求区块链数据
+        // console.log(`[P2P] Requesting chain from peer on port ${port}`);
+        // this.sendMessage(sender, {
+        //     type: MESSAGE_TYPES.REQUEST_CHAIN
+        // });
+    }
+
+    /**
+     * 处理握手响应
+     */
+    handleHandshakeResponse(data) {
+        const { port, peers } = data;
+        console.log(`[P2P] Received handshake response from peer on port ${port}`);
+
+        // 添加新的已知节点
+        peers.forEach(peerAddress => {
+            if (!this.node.knownPeers.has(peerAddress)) {
+                this.node.knownPeers.add(peerAddress);
+                // 尝试连接到新发现的节点
+                this.node.connectToPeer(peerAddress);
+            }
+        });
     }
 }
 
