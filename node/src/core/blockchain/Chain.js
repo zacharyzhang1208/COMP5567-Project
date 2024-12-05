@@ -3,18 +3,44 @@ import path from 'path';
 import fs from 'fs';
 import Block from './block.js';
 import { MESSAGE_TYPES } from '../../network/message.handler.js';
+import { UserRegistrationTransaction } from './transaction.js';
+import CryptoUtil from '../../utils/crypto.js';
 
 class Chain {
+    // 生成固定的管理员密钥对
+    static ADMIN_KEYS = CryptoUtil.generateKeyPair('admin', 'admin_secret');
+
+    // 定义管理员信息
+    static ADMIN_INFO = {
+        id: 'admin',
+        publicKey: Chain.ADMIN_KEYS.publicKey,
+        privateKey: Chain.ADMIN_KEYS.privateKey,  // 在实际部署时应该安全存储
+        role: 'ADMIN'
+    };
+
     // 定义统一的创世区块
-    static GENESIS_BLOCK = new Block({
-        timestamp: 1701676800000,  // 2023-12-04 12:00:00 UTC
-        transactions: [],
-        previousHash: '0',
-        validatorId: 'genesis',
-        validatorPubKey: '',
-        signature: '',
-        hash: '000000000000000000000000000000000000000000000000000000000000genesis'  // 固定哈希
-    });
+    static GENESIS_BLOCK = (() => {
+        // 创建管理员注册交易
+        const adminRegTx = new UserRegistrationTransaction({
+            userId: Chain.ADMIN_INFO.id,
+            userType: Chain.ADMIN_INFO.role,
+            publicKey: Chain.ADMIN_INFO.publicKey
+        });
+
+        // 创建创世区块
+        const block = new Block({
+            timestamp: 1701676800000,  // 2023-12-04 12:00:00 UTC
+            transactions: [adminRegTx],  // 包含管理员注册交易
+            previousHash: '0',
+            validatorId: 'genesis',
+            validatorPubKey: '',
+            signature: ''
+        });
+
+        // 计算区块哈希
+        block.hash = block.calculateHash();
+        return block;
+    })();
 
     constructor(node) {
         this.node = node;
