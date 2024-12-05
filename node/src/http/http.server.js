@@ -11,11 +11,13 @@ class HttpServer {
     }
 
     async initialize() {
+        console.log('[HTTP] Initializing HTTP server');
         // 设置中间件
         this.setupMiddleware();
         // 设置路由
         this.setupRoutes();
         // 启动服务器
+        
         await this.start();
     }
 
