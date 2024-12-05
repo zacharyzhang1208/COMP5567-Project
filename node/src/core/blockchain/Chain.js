@@ -1,3 +1,5 @@
+// 区块链类
+
 import { Level } from 'level';
 import path from 'path';
 import fs from 'fs';
