@@ -92,8 +92,6 @@ class Chain {
             console.log("loading chain");
             const chainData = await this.db.get('chain');
             const parsedChainData = JSON.parse(chainData);
-            console.log("parsedChainData",parsedChainData);
-            console.log("Chain.GENESIS_BLOCK.hash",Chain.GENESIS_BLOCK.hash);
             
             // 验证第一个区块是否是正确的创世区块
             if (parsedChainData[0].hash !== Chain.GENESIS_BLOCK.hash) {
@@ -111,9 +109,6 @@ class Chain {
             if (error.code === 'LEVEL_NOT_FOUND') {
                 console.log("[Chain] No existing chain found, starting with genesis block");
                 this.chainData = [Chain.GENESIS_BLOCK];
-                console.log("genisis chainData",this.chainData);
-                console.log("genisis chainData[0].hash",this.chainData[0].hash);
-                console.log("genisis Chain.GENESIS_BLOCK.hash",Chain.GENESIS_BLOCK.hash);
                 await this.saveChain();
             } else if (error.message === 'Invalid genesis block') {
                 console.error('[Chain] Invalid genesis block detected');

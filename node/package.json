@@ -9,9 +9,10 @@
     "dev": "nodemon --watch src/ --signal SIGTERM src/app.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dotenv": "^16.4.6",
-    "ethers": "^5.7.2",
+    "express": "^4.21.1",
     "level": "^8.0.0",
     "secp256k1": "^5.0.1",
     "ws": "^8.13.0"

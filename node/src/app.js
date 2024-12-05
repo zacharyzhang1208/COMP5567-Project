@@ -1,6 +1,7 @@
 import Chain from './core/blockchain/chain.js';
 import MessageHandler from './network/message.handler.js';
 import P2PServer from './network/p2p.server.js';
+import HttpServer from './http/http.server.js';
 import { UserRegistrationTransaction } from './core/blockchain/transaction.js';
 import CryptoUtil from './utils/crypto.js';
 
@@ -13,6 +14,7 @@ class TeacherNode {
         this.status = 'created';
         this.p2pServer = new P2PServer(this);
         this.chain = new Chain(this);
+        this.httpServer = new HttpServer(this);
     }
 
     async initialize() {
@@ -20,10 +22,8 @@ class TeacherNode {
             this.status = 'initializing';
             
             await this.p2pServer.initialize();
-
-            console.log(`[Node] Initialized with port: ${this.port}`);
-            
             await this.chain.initialize();
+            await this.httpServer.initialize();
             
             this.status = 'initialized';
             return true;
