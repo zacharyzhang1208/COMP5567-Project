@@ -25,6 +25,7 @@ class EnvironmentConfig {
 	constructor() {
 		this.requiredEnvVars = [
 			'HTTP_PORT',
+			'LEVELDB_PATH',
 			// Add other required environment variables here
 		];
 		this.init();
