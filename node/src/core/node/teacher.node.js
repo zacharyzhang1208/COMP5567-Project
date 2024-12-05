@@ -45,7 +45,7 @@ class TeacherNode extends BaseNode {
         const isValid = CryptoUtil.verify(userRegTx.hash, signature, this.currentUser.publicKey);
 
         this.chain.addTransaction(userRegTx);
-        console.log("tx_size",this.pendingTransactions.size)
+        console.log("tx_size",this.chain.pendingTransactions.size)
         await this.messageHandler.broadcastTransaction(userRegTx);
         await this.chain.saveChain();
         
