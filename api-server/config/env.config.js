@@ -25,7 +25,9 @@ class EnvironmentConfig {
 	constructor() {
 		this.requiredEnvVars = [
 			'HTTP_PORT',
-			'LEVELDB_PATH',
+			'LEVELDB_PATH',			
+			'P2P_PORT_START',
+			'P2P_PORT_END'
 			// Add other required environment variables here
 		];
 		this.init();
@@ -60,8 +62,23 @@ class EnvironmentConfig {
 		const __dirname = dirname(__filename);
 		const rootDir = join(__dirname, '../');
 		const envPath = join(rootDir, '.env');
+		const exampleEnvPath = join(rootDir, '.env.example');
+
 		if (!fs.existsSync(envPath)) {
-			throw new EnvConfigError('.env file not found');
+			console.log('\x1b[33m%s\x1b[0m', '.env file not found, attempting to create from .env.example');
+			
+			// 检查 .env.example 是否存在
+			if (!fs.existsSync(exampleEnvPath)) {
+				throw new EnvConfigError('.env.example file not found');
+			}
+
+			try {
+				// 复制 .env.example 到 .env
+				fs.copyFileSync(exampleEnvPath, envPath);
+				console.log('\x1b[32m%s\x1b[0m', '✓ Created .env file from .env.example');
+			} catch (error) {
+				throw new EnvConfigError(`Failed to create .env file: ${error.message}`);
+			}
 		}
 	}
 
@@ -91,12 +108,29 @@ class EnvironmentConfig {
 	 * @throws {EnvConfigError} If any required environment variables are missing
 	 */
 	validateEnv() {
+		// 检查必需的环境变量
 		const missingEnvVars = this.requiredEnvVars.filter(
 			envVar => !process.env[envVar]
 		);
 
 		if (missingEnvVars.length > 0) {
 			throw new EnvConfigError(`Missing required variables: ${missingEnvVars.join(', ')}`);
+		}
+
+		// 验证端口范围的有效性
+		const startPort = parseInt(process.env.P2P_PORT_START);
+		const endPort = parseInt(process.env.P2P_PORT_END);
+
+		if (isNaN(startPort) || isNaN(endPort)) {
+			throw new EnvConfigError('Port range values must be numbers');
+		}
+
+		if (startPort >= endPort) {
+			throw new EnvConfigError('P2P_PORT_START must be less than P2P_PORT_END');
+		}
+
+		if (startPort < 1024 || endPort > 65535) {
+			throw new EnvConfigError('Port range must be between 1024 and 65535');
 		}
 	}
 
@@ -107,6 +141,19 @@ class EnvironmentConfig {
 	 */
 	get(key) {
 		return process.env[key];
+	}
+
+	/**
+	 * 获取网络配置
+	 * @returns {Object} 网络配置对象
+	 */
+	getNetworkConfig() {
+		return {
+			portRange: {
+				start: parseInt(process.env.P2P_PORT_START),
+				end: parseInt(process.env.P2P_PORT_END)
+			}
+		};
 	}
 }
 

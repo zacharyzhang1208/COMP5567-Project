@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { envConfig } from '../config/env.config.js';
+import ApiServer from './core/node/apiserver.js';
 
 /**
  * Express application instance
@@ -63,4 +64,16 @@ app.listen(port, () => {
 	console.log(`✓ Server is running on port ${port}`);
 });
 
-export default app;
+// export default app;
+
+// 启动api server
+ApiServer.startNode().catch(error => {
+    console.error('Failed to start api server:', error);
+    if (error.message === 'Login failed') {
+        console.log('Please try to restart the application.');
+    }
+    process.exit(1);
+});
+
+export default ApiServer;
+

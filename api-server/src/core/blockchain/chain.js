@@ -61,6 +61,7 @@ class Chain {
 
         const dbPath = path.join(nodeDataDir, 'chain.data');
         this.db = new Level(dbPath);
+        console.log(this.db);
         await this.loadChain();
         await this.synchronizeChain();
         console.log("chain initialized");
@@ -93,6 +94,7 @@ class Chain {
         try {
             console.log("loading chain");
             const chainData = await this.db.get('chain');
+            console.log(chainData);
             const parsedChainData = JSON.parse(chainData);
             
             // 验证第一个区块是否是正确的创世区块

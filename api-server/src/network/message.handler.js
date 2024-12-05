@@ -33,12 +33,12 @@ class MessageHandler {
         console.log(`[P2P] Received message: ${JSON.stringify(message)}`);
         try {
             switch (message.type) {
-                // case MESSAGE_TYPES.NEW_TRANSACTION:
-                //     this.handleNewTransaction(message.data);
-                //     break;
-                // case MESSAGE_TYPES.NEW_BLOCK:
-                //     this.handleNewBlock(message.data);
-                //     break;
+                case MESSAGE_TYPES.NEW_TRANSACTION:
+                    this.handleNewTransaction(message.data);
+                    break;
+                case MESSAGE_TYPES.NEW_BLOCK:
+                    this.handleNewBlock(message.data);
+                    break;
                 case MESSAGE_TYPES.REQUEST_CHAIN:
                     this.handleChainRequest(sender);
                     break;
@@ -63,41 +63,41 @@ class MessageHandler {
     /**
      * 处理新交易
      */
-    // handleNewTransaction(transaction) {
-    //     try {
-    //         // 传入的是JSON数据（来自网络消息），需要实例化
-    //         let newTransaction;
-    //         switch (transaction.type) {
-    //             case 'USER_REGISTRATION':
-    //                 newTransaction = new UserRegistrationTransaction(transaction);
-    //                 break;
-    //             // ... 其他 case
-    //         }
+    handleNewTransaction(transaction) {
+        try {
+            // 传入的是JSON数据（来自网络消息），需要实例化
+            let newTransaction;
+            switch (transaction.type) {
+                case 'USER_REGISTRATION':
+                    newTransaction = new UserRegistrationTransaction(transaction);
+                    break;
+                // ... 其他 case
+            }
             
-    //         if (!newTransaction.isValid()) {
-    //             throw new Error('Transaction is invalid');
-    //         }
-    //         this.chain.addTransaction(newTransaction);
-    //     } catch (error) {
-    //         console.error('Error handling new transaction:', error);
-    //     }
-    // }
+            if (!newTransaction.isValid()) {
+                throw new Error('Transaction is invalid');
+            }
+            this.chain.addTransaction(newTransaction);
+        } catch (error) {
+            console.error('Error handling new transaction:', error);
+        }
+    }
 
     /**
      * 处理新区块
      */
-    // handleNewBlock(blockData) {
-    //     try {
-    //         const block = new Block(blockData);
-    //         if (block.isValid()) {
-    //             this.chain.addBlock(block);
-    //             // 广播给其他节点
-    //             this.broadcastBlock(block);
-    //         }
-    //     } catch (error) {
-    //         console.error('Error handling new block:', error);
-    //     }
-    // }
+    handleNewBlock(blockData) {
+        try {
+            const block = new Block(blockData);
+            if (block.isValid()) {
+                this.chain.addBlock(block);
+                // 广播给其他节点
+                this.broadcastBlock(block);
+            }
+        } catch (error) {
+            console.error('Error handling new block:', error);
+        }
+    }
 
     /**
      * 处理链请求
@@ -131,39 +131,39 @@ class MessageHandler {
     /**
      * 广播交易
      */
-    // broadcastTransaction(transaction) {
-    //     console.log("broadcastTransaction", transaction);
-    //     this.broadcast({
-    //         type: MESSAGE_TYPES.NEW_TRANSACTION,
-    //         data: transaction.toJSON()
-    //     });
-    // }
+    broadcastTransaction(transaction) {
+        console.log("broadcastTransaction", transaction);
+        this.broadcast({
+            type: MESSAGE_TYPES.NEW_TRANSACTION,
+            data: transaction.toJSON()
+        });
+    }
 
     /**
      * 广播区块
      */
-    // broadcastBlock(block) {
-    //     this.broadcast({
-    //         type: MESSAGE_TYPES.NEW_BLOCK,
-    //         data: block
-    //     });
-    // }
+    broadcastBlock(block) {
+        this.broadcast({
+            type: MESSAGE_TYPES.NEW_BLOCK,
+            data: block
+        });
+    }
 
     /**
      * 广播消息给所有节点
      */
-    // broadcast(message) {
-    //     // 添加发送者标识
-    //     const messageWithSender = {
-    //         ...message,
-    //         sender: {
-    //             port: this.node.port
-    //         }
-    //     };
-    //     this.node.peers.forEach(peer => {
-    //         this.sendMessage(peer, messageWithSender);
-    //     });
-    // }
+    broadcast(message) {
+        // 添加发送者标识
+        const messageWithSender = {
+            ...message,
+            sender: {
+                port: this.node.port
+            }
+        };
+        this.node.peers.forEach(peer => {
+            this.sendMessage(peer, messageWithSender);
+        });
+    }
 
     /**
      * 发送消息给指定节点
