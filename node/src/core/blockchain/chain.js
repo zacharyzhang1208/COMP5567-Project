@@ -283,6 +283,14 @@ class Chain {
             pendingTransactions: Array.from(this.pendingTransactions.values()).map(tx => tx.toJSON())
         };
     }
+
+    /**
+     * 获取待处理的交易列表
+     * @returns {Array} 待处理的交易数组
+     */
+    getPendingTransactions() {
+        return Array.from(this.pendingTransactions.values());
+    }
 }
 
 export default Chain; 

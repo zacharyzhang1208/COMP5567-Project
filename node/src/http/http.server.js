@@ -77,6 +77,22 @@ class HttpServer {
                 pendingTransactions: this.node.chain.pendingTransactions.size
             });
         });
+
+        // 在 HttpServer 类中添加路由
+        this.app.post('/blocks/create', async (req, res) => {
+            try {
+                const newBlock = await this.node.createNewBlock();
+                res.json({
+                    success: true,
+                    block: newBlock
+                });
+            } catch (error) {
+                res.status(400).json({
+                    success: false,
+                    error: error.message
+                });
+            }
+        });
     }
 
     async start() {
