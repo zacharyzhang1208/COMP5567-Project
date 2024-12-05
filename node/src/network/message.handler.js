@@ -1,5 +1,6 @@
 import { BaseTransaction, UserRegistrationTransaction, CourseCreationTransaction } from '../core/blockchain/transaction.js';
 import Block from '../core/blockchain/block.js';
+import { envConfig } from '../../config/env.config.js'
 
 // 定义消息类型
 export const MESSAGE_TYPES = {
@@ -29,8 +30,9 @@ class MessageHandler {
             console.log('[P2P] Ignoring message from self');
             return;
         }
-
-        console.log(`[P2P] Received message: ${JSON.stringify(message)}`);
+        if (envConfig.isDebugMode()) {
+            console.log(`[P2P] Received message: ${JSON.stringify(message)}`);
+        }
         try {
             switch (message.type) {
                 case MESSAGE_TYPES.NEW_TRANSACTION:
@@ -132,7 +134,7 @@ class MessageHandler {
      * 广播交易
      */
     broadcastTransaction(transaction) {
-        console.log("broadcastTransaction", transaction);
+        console.log("[P2P] Broadcasting transaction:", transaction);
         this.broadcast({
             type: MESSAGE_TYPES.NEW_TRANSACTION,
             data: transaction.toJSON()
@@ -170,7 +172,9 @@ class MessageHandler {
      */
     sendMessage(peer, message) {
         try {
-            console.log(`[P2P] Sending message: ${JSON.stringify(message)}`);
+            if (envConfig.isDebugMode()) {
+                console.log(`[P2P] Sending message: ${JSON.stringify(message)}`);
+            }
             peer.send(JSON.stringify(message));
         } catch (error) {
             console.error('Error sending message:', error);
