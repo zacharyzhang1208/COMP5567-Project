@@ -91,7 +91,6 @@ class Chain {
 
     async loadChain() {
         try {
-            console.log("loading chain");
             const chainData = await this.db.get('chain');
             const parsedChainData = JSON.parse(chainData);
             

@@ -2,8 +2,31 @@ import BaseNode from './base.node.js';
 import CryptoUtil from '../../utils/crypto.js';
 import { UserRegistrationTransaction } from '../blockchain/transaction.js';
 import Block from '../blockchain/block.js';
+import CLI from '../../utils/cli.js';
 
 class TeacherNode extends BaseNode {
+    constructor() {
+        super();
+        this.isLoggedIn = false;
+        this.currentUser = null;
+    }
+
+    async login() {
+        console.log('\n=== Teacher Node Login ===');
+        const username = await CLI.prompt('Username: ');
+        const password = await CLI.prompt('Password: ');
+
+        // 目前直接登录成功
+        this.isLoggedIn = true;
+        this.currentUser = {
+            username,
+            role: 'TEACHER'
+        };
+        
+        console.log(`\nWelcome, ${username}!`);
+        return true;
+    }
+
     async onStart() {
         // 教师节点特有的启动逻辑
         const { publicKey, privateKey } = CryptoUtil.generateKeyPair('root', 'password');
@@ -75,13 +98,18 @@ class TeacherNode extends BaseNode {
             if (!await node.initialize()) {
                 throw new Error('Node initialization failed');
             }
+
+            // 添加登录步骤
+            if (!await node.login()) {
+                throw new Error('Login failed');
+            }
             
             await node.start();
             console.log('[Node] Teacher node started successfully');
             
             return node;
         } catch (error) {
-            console.error('[Node] Failed to start teacher node:', error.message);
+            console.error('[Node] Failed to start node:', error.message);
             throw error;
         }
     }
