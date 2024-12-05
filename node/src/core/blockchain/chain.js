@@ -61,12 +61,9 @@ class Chain {
 
         const dbPath = path.join(nodeDataDir, 'chain.data');
         this.db = new Level(dbPath);
-        console.log("db", this.db);
         await this.loadChain();
         await this.synchronizeChain();
-        console.log("chain initialized");
-        console.log(this.chainData.length);
-        console.log(this.pendingTransactions.size);
+        console.log("[Chain] Initialization completed");
     }
 
     async synchronizeChain() {
