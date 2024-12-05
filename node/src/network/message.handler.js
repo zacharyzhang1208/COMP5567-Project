@@ -26,11 +26,6 @@ class MessageHandler {
      * 处理接收到的消息
      */
     handleMessage(message, sender) {
-        // 检查消息发送者
-        if (message.sender && message.sender.port === this.node.port) {
-            this.logger.debug('Ignoring message from self');
-            return;
-        }
 
         this.logger.debug('Received message:', JSON.stringify(message));
         try {
@@ -64,10 +59,13 @@ class MessageHandler {
      */
     handleNewTransaction(transaction) {
         try {
+            
             // 传入的是JSON数据（来自网络消息），需要实例化
             let newTransaction;
+            console.log("transaction.type:", transaction.type);
             switch (transaction.type) {
                 case 'USER_REGISTRATION':
+                    console.log("Handleing new transaction");
                     newTransaction = new UserRegistrationTransaction(transaction);
                     break;
                 // ... 其他 case
@@ -76,7 +74,10 @@ class MessageHandler {
             if (!newTransaction.isValid()) {
                 throw new Error('Transaction is invalid');
             }
+            
             this.chain.addTransaction(newTransaction);
+            this.chain.saveChain();
+            console.log("pendingTransactions.size:", this.chain.pendingTransactions.size);
         } catch (error) {
             this.logger.error('Error handling new transaction:', error);
         }
@@ -150,6 +151,7 @@ class MessageHandler {
      * 广播消息给所有节点
      */
     broadcast(message) {
+        //console.log("peers.length:", this.node.peers);
         // 添加发送者标识
         const messageWithSender = {
             ...message,
