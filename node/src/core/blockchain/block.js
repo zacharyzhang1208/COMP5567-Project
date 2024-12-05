@@ -32,13 +32,11 @@ class Block {
             validatorId: this.validatorId,
             validatorPubKey: this.validatorPubKey
         };
-        console.log("data in calculateHash",data);
         
-        const result = createHash('sha256')
+        return createHash('sha256')
             .update(JSON.stringify(data))
             .digest('hex');
-        console.log("result in calculateHash",result);
-        return result;
+         
     }
 
     /**
