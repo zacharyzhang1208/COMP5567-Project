@@ -1,4 +1,4 @@
-import Chain from './core/blockchain/chain.js';
+import Chain from './core/blockchain/chaintemp.js';
 import MessageHandler from './network/message.handler.js';
 import P2PServer from './network/p2p.server.js';
 import HttpServer from './http/http.server.js';

@@ -3,7 +3,7 @@
 import { Level } from 'level';
 import path from 'path';
 import fs from 'fs';
-import Block from './block.js';
+import Block from './blocktemp.js';
 import { MESSAGE_TYPES } from '../../network/message.handler.js';
 import { UserRegistrationTransaction } from './transaction.js';
 import CryptoUtil from '../../utils/crypto.js';
