@@ -76,7 +76,9 @@ class P2PServer {
             }
             
             try {
-                console.log(`[P2P] Attempting to connect to peer at ${address}`);
+                if(envConfig.isDebugMode()) {
+                    console.log(`[P2P] Attempting to connect to peer at ${address}`);
+                }   
                 const ws = new WebSocket(address);
                 
                 const timeout = setTimeout(() => {

@@ -20,7 +20,8 @@ class EnvironmentConfig {
 	constructor() {
 		this.requiredEnvVars = [
 			'P2P_PORT_START',
-			'P2P_PORT_END'
+			'P2P_PORT_END',
+			'DEBUG_MODE'
 		];
 		this.init();
 	}
@@ -120,6 +121,12 @@ class EnvironmentConfig {
 		if (startPort < 1024 || endPort > 65535) {
 			throw new EnvConfigError('Port range must be between 1024 and 65535');
 		}
+
+		// 验证 DEBUG_MODE 的值
+		const debugMode = process.env.DEBUG_MODE.toLowerCase();
+		if (debugMode !== 'true' && debugMode !== 'false') {
+			throw new EnvConfigError('DEBUG_MODE must be either "true" or "false"');
+		}
 	}
 
 	/**
@@ -142,6 +149,14 @@ class EnvironmentConfig {
 				end: parseInt(process.env.P2P_PORT_END)
 			}
 		};
+	}
+
+	/**
+	 * 检查是否处于调试模式
+	 * @returns {boolean} 是否为调试模式
+	 */
+	isDebugMode() {
+		return process.env.DEBUG_MODE.toLowerCase() === 'true';
 	}
 }
 
