@@ -3,17 +3,20 @@ import { MESSAGE_TYPES } from './message.handler.js';
 import PortUtils from '../utils/port.js';
 import { envConfig } from '../../config/env.config.js';
 import Logger from '../utils/logger.js';
+import NetworkUtils from '../utils/network.js';
 
 class P2PServer {
     constructor(node) {
         this.node = node;
         this.port = null;
         this.logger = new Logger('P2P');
+        this.host = NetworkUtils.getLocalIP();
     }
 
     async initialize() {
-        // 获取可用端口
         this.logger.info('Initializing P2P server...');
+        this.logger.info(`Local IP address: ${this.host}`);
+        // 获取可用端口
         const networkConfig = envConfig.getNetworkConfig();
         const { start, end } = networkConfig.portRange;
         
@@ -56,75 +59,70 @@ class P2PServer {
     }
 
     async connectToNetwork() {
-        const networkConfig = envConfig.getNetworkConfig();
-        const { start, end } = networkConfig.portRange;
+        this.logger.info('Starting network discovery...');
         
-        this.logger.info(`Scanning for peers in port range ${start}-${end}`);
+        // 获取所有可能的IP地址
+        const possibleIPs = NetworkUtils.getAllPossibleIPs();
         const connectionPromises = [];
-        for (let p = start; p <= end; p++) {
-            if (p === this.port) continue;
-            connectionPromises.push(this.connectToPeer(`ws://localhost:${p}`));
+
+        for (const ip of possibleIPs) {
+            // 尝试连接到每个可能的端口
+            const networkConfig = envConfig.getNetworkConfig();
+            const { start, end } = networkConfig.portRange;
+            
+            for (let port = start; port <= end; port++) {
+                // 跳过自己的端口
+                if (ip === this.host && port === this.port) continue;
+                
+                connectionPromises.push(
+                    this.connectToPeer(`ws://${ip}:${port}`)
+                        .catch(() => {}) // 忽略连接失败
+                );
+            }
         }
 
-        await Promise.all(connectionPromises);
-        this.logger.info('Network scan completed');
+        // 使用 Promise.allSettled 来并行处理所有连接尝试
+        const results = await Promise.allSettled(connectionPromises);
+        const successfulConnections = results.filter(r => r.status === 'fulfilled').length;
+        
+        this.logger.info(`Network discovery completed. Found ${successfulConnections} peers`);
     }
 
     async connectToPeer(address) {
-        return new Promise((resolve) => {
-            if (address === `ws://localhost:${this.node.port}`) {
+        return new Promise((resolve, reject) => {
+            // 跳过自己的地址
+            if (address === `ws://${this.host}:${this.port}`) {
                 resolve();
                 return;
             }
+
+            const ws = new WebSocket(address);
             
-            try {
-                if(envConfig.isDebugMode()) {
-                    this.logger.debug(`Attempting to connect to peer at ${address}`);
-                }   
-                const ws = new WebSocket(address);
+            const timeout = setTimeout(() => {
+                ws.close();
+                reject(new Error('Connection timeout'));
+            }, 1000);
+
+            ws.on('open', () => {
+                clearTimeout(timeout);
+                this.logger.info(`Successfully connected to peer at ${address}`);
+                this.node.peers.add(ws);
+                this.node.knownPeers.add(address);
                 
-                const timeout = setTimeout(() => {
-                    ws.close();
-                    this.logger.debug(`Connection timeout for ${address}`);
-                    resolve();
-                }, 1000);
-
-                ws.on('open', () => {
-                    clearTimeout(timeout);
-                    this.logger.info(`Successfully connected to peer at ${address}`);
-                    this.node.peers.add(ws);
-                    this.node.knownPeers.add(address);
-                    
-                    this.node.messageHandler.sendMessage(ws, {
-                        type: MESSAGE_TYPES.HANDSHAKE,
-                        data: { port: this.port }
-                    });
-                    
-                    ws.on('message', (message) => {
-                        const data = JSON.parse(message);
-                        this.node.messageHandler.handleMessage(data, ws);
-                        
-                        if (data.type === MESSAGE_TYPES.HANDSHAKE_RESPONSE) {
-                            resolve();
-                        }
-                    });
+                this.node.messageHandler.sendMessage(ws, {
+                    type: MESSAGE_TYPES.HANDSHAKE,
+                    data: { 
+                        address: `ws://${this.host}:${this.port}`
+                    }
                 });
+                
+                resolve(ws);
+            });
 
-                ws.on('error', () => {
-                    clearTimeout(timeout);
-                    this.logger.debug(`Failed to connect to peer at ${address}`);
-                    resolve();
-                });
-
-                ws.on('close', () => {
-                    clearTimeout(timeout);
-                    this.node.peers.delete(ws);
-                    resolve();
-                });
-            } catch (err) {
-                this.logger.error(`Error connecting to peer at ${address}:`, err.message);
-                resolve();
-            }
+            ws.on('error', () => {
+                clearTimeout(timeout);
+                reject(new Error('Connection failed'));
+            });
         });
     }
 

@@ -1,15 +1,17 @@
 import net from 'net';
 import fs from 'fs';
 import path from 'path';
+import Logger from './logger.js';
 
 class PortUtils {
     static LOCKS_DIR = path.join(process.cwd(), '.locks');
     static lockedPorts = new Set();
+    static logger = new Logger('Port');
 
     static ensureLocksDir() {
         if (!fs.existsSync(this.LOCKS_DIR)) {
             fs.mkdirSync(this.LOCKS_DIR, { recursive: true });
-            console.log('[Port] Created locks directory');
+            this.logger.info('Created locks directory');
         }
     }
 
@@ -48,7 +50,7 @@ class PortUtils {
     static async isPortAvailable(port) {
         // 1. Check the lock file
         if (!await this.lockPort(port)) {
-            console.log(`[Port] Port ${port} is locked`);
+            this.logger.debug(`Port ${port} is locked`);
             return false;
         }
 
@@ -72,11 +74,11 @@ class PortUtils {
     }
 
     static async findAvailablePort(startPort, endPort) {
-        console.log(`[Port] Searching for available port in range ${startPort}-${endPort}`);
+        this.logger.info(`Searching for available port in range ${startPort}-${endPort}`);
         
         for (let port = startPort; port <= endPort; port++) {
             if (await this.isPortAvailable(port)) {
-                console.log(`[Port] Found available port: ${port}`);
+                this.logger.info(`Found available port: ${port}`);
                 return port;
             }
         }
@@ -88,16 +90,16 @@ class PortUtils {
         for (const port of this.lockedPorts) {
             try {
                 this.unlockPort(port);
-                console.log(`[Port] Cleaned up lock for port ${port}`);
+                this.logger.debug(`Cleaned up lock for port ${port}`);
             } catch (err) {
-                console.error(`[Port] Error cleaning up lock for port ${port}:`, err);
+                this.logger.error(`Error cleaning up lock for port ${port}:`, err);
             }
         }
         this.lockedPorts.clear();
 
         try {
             fs.rmdirSync(this.LOCKS_DIR);
-            console.log('[Port] Removed empty locks directory');
+            this.logger.debug('Removed empty locks directory');
         } catch (err) {
             // Ignore the directory not empty or not exist error
         }

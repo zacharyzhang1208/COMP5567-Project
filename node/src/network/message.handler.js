@@ -48,10 +48,7 @@ class MessageHandler {
                     this.handleChainResponse(message.data);
                     break;
                 case MESSAGE_TYPES.HANDSHAKE:
-                    this.handleHandshake(message.data, sender);
-                    break;
-                case MESSAGE_TYPES.HANDSHAKE_RESPONSE:
-                    this.handleHandshakeResponse(message.data);
+                    this.handleHandshake(message.data);
                     break;
                 default:
                     this.logger.warn(`Unknown message type: ${message.type}`);
@@ -180,38 +177,15 @@ class MessageHandler {
     /**
      * 处理握手消息
      */
-    handleHandshake(data, sender) {
-        const { port } = data;
-        this.logger.info(`Received handshake from peer on port ${port}`);
+    handleHandshake(data) {
+        const { address } = data;
+        this.logger.info(`Received handshake from peer at ${address}`);
 
-        // 记录新的对等节点
-        this.node.knownPeers.add(`ws://localhost:${port}`);
-
-        // 发送握手响应
-        this.sendMessage(sender, {
-            type: MESSAGE_TYPES.HANDSHAKE_RESPONSE,
-            data: {
-                port: this.node.port,
-                peers: Array.from(this.node.knownPeers)
-            }
-        });
-    }
-
-    /**
-     * 处理握手响应
-     */
-    handleHandshakeResponse(data) {
-        const { port, peers } = data;
-        this.logger.info(`Received handshake response from peer on port ${port}`);
-
-        // 添加新的已知节点
-        peers.forEach(peerAddress => {
-            if (!this.node.knownPeers.has(peerAddress)) {
-                this.node.knownPeers.add(peerAddress);
-                // 尝试连接到新发现的节点
-                this.node.p2pServer.connectToPeer(peerAddress);
-            }
-        });
+        // 不添加自己的地址
+        if (address !== `ws://${this.node.p2pServer.host}:${this.node.port}`) {
+            this.node.knownPeers.add(address);
+        }
+        this.logger.debug('Known peers:', Array.from(this.node.knownPeers));
     }
 }
 
