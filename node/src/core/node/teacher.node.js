@@ -16,9 +16,12 @@ class TeacherNode extends BaseNode {
         const username = await CLI.prompt('Username: ');
         const password = await CLI.prompt('Password: ');
 
+        const { publicKey, privateKey } = CryptoUtil.generateKeyPair(username, password);
         // 目前直接登录成功
         this.isLoggedIn = true;
         this.currentUser = {
+            privateKey,
+            publicKey,
             username,
             role: 'TEACHER'
         };
@@ -29,17 +32,17 @@ class TeacherNode extends BaseNode {
 
     async onStart() {
         // 教师节点特有的启动逻辑
-        const { publicKey, privateKey } = CryptoUtil.generateKeyPair('root', 'password');
+        
         
         const userRegTx = new UserRegistrationTransaction({
             userId: 'root',
             userType: 'TEACHER',
-            publicKey: publicKey
+            publicKey: this.currentUser.publicKey
         });
         
-        const signature = CryptoUtil.sign(userRegTx.hash, privateKey);
+        const signature = CryptoUtil.sign(userRegTx.hash, this.currentUser.privateKey);
         userRegTx.signature = signature;
-        const isValid = CryptoUtil.verify(userRegTx.hash, signature, publicKey);
+        const isValid = CryptoUtil.verify(userRegTx.hash, signature, this.currentUser.publicKey);
 
         this.chain.addTransaction(userRegTx);
         await this.messageHandler.broadcastTransaction(userRegTx);
