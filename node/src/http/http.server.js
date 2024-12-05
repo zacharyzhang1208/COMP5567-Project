@@ -2,22 +2,23 @@ import express from 'express';
 import cors from 'cors';
 import { UserRegistrationTransaction } from '../core/blockchain/transaction.js';
 import CryptoUtil from '../utils/crypto.js';
+import Logger from '../utils/logger.js';
 
 class HttpServer {
     constructor(node) {
         this.node = node;
         this.app = express();
         this.port = null;
+        this.logger = new Logger('HTTP');
     }
 
     async initialize() {
-        console.log('[HTTP] Initializing HTTP server');
+        this.logger.info('Initializing HTTP server');
         // 设置中间件
         this.setupMiddleware();
         // 设置路由
         this.setupRoutes();
         // 启动服务器
-        
         await this.start();
     }
 
@@ -34,11 +35,13 @@ class HttpServer {
 
         // 获取区块链数据
         this.app.get('/chain', (req, res) => {
+            this.logger.debug('Received request for chain data');
             res.json(this.node.chain.chainData);
         });
 
         // 获取待处理交易
         this.app.get('/pending', (req, res) => {
+            this.logger.debug('Received request for pending transactions');
             const transactions = Array.from(this.node.chain.pendingTransactions.values());
             res.json(transactions);
         });
@@ -47,6 +50,7 @@ class HttpServer {
         this.app.post('/transaction', async (req, res) => {
             try {
                 const { type, ...transactionData } = req.body;
+                this.logger.info(`Received new transaction of type: ${type}`);
                 let transaction;
 
                 switch (type) {
@@ -61,14 +65,17 @@ class HttpServer {
                 await this.node.chain.addTransaction(transaction);
                 await this.node.messageHandler.broadcastTransaction(transaction);
                 
+                this.logger.info(`Transaction added successfully: ${transaction.hash}`);
                 res.json({ success: true, hash: transaction.hash });
             } catch (error) {
+                this.logger.error('Failed to process transaction:', error);
                 res.status(400).json({ error: error.message });
             }
         });
 
         // 获取节点信息
         this.app.get('/info', (req, res) => {
+            this.logger.debug('Received request for node info');
             res.json({
                 p2pPort: this.node.port,
                 httpPort: this.port,
@@ -78,15 +85,18 @@ class HttpServer {
             });
         });
 
-        // 在 HttpServer 类中添加路由
+        // 创建新区块
         this.app.post('/blocks/create', async (req, res) => {
             try {
+                this.logger.info('Attempting to create new block');
                 const newBlock = await this.node.createNewBlock();
+                this.logger.info(`New block created: ${newBlock.hash}`);
                 res.json({
                     success: true,
                     block: newBlock
                 });
             } catch (error) {
+                this.logger.error('Failed to create block:', error);
                 res.status(400).json({
                     success: false,
                     error: error.message
@@ -101,7 +111,7 @@ class HttpServer {
         
         return new Promise((resolve) => {
             this.server = this.app.listen(this.port, () => {
-                console.log(`[HTTP] Server started on port ${this.port}`);
+                this.logger.info(`Server started on port ${this.port}`);
                 resolve();
             });
         });

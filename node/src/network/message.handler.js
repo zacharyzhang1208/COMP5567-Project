@@ -1,6 +1,6 @@
-import { BaseTransaction, UserRegistrationTransaction, CourseCreationTransaction } from '../core/blockchain/transaction.js';
+import { BaseTransaction, UserRegistrationTransaction } from '../core/blockchain/transaction.js';
 import Block from '../core/blockchain/block.js';
-import { envConfig } from '../../config/env.config.js'
+import Logger from '../utils/logger.js';
 
 // 定义消息类型
 export const MESSAGE_TYPES = {
@@ -15,6 +15,7 @@ export const MESSAGE_TYPES = {
 class MessageHandler {
     constructor(node) {
         this.node = node;  // TeacherNode 实例
+        this.logger = new Logger('MSG');
     }
 
     get chain() {
@@ -27,12 +28,11 @@ class MessageHandler {
     handleMessage(message, sender) {
         // 检查消息发送者
         if (message.sender && message.sender.port === this.node.port) {
-            console.log('[P2P] Ignoring message from self');
+            this.logger.debug('Ignoring message from self');
             return;
         }
-        if (envConfig.isDebugMode()) {
-            console.log(`[P2P] Received message: ${JSON.stringify(message)}`);
-        }
+
+        this.logger.debug('Received message:', JSON.stringify(message));
         try {
             switch (message.type) {
                 case MESSAGE_TYPES.NEW_TRANSACTION:
@@ -54,11 +54,11 @@ class MessageHandler {
                     this.handleHandshakeResponse(message.data);
                     break;
                 default:
-                    console.warn(`Unknown message type: ${message.type}`);
+                    this.logger.warn(`Unknown message type: ${message.type}`);
             }
         } catch (error) {
-            console.error('Error handling message:', error);
-            console.error('Message was:', message);
+            this.logger.error('Error handling message:', error);
+            this.logger.debug('Message was:', message);
         }
     }
 
@@ -81,7 +81,7 @@ class MessageHandler {
             }
             this.chain.addTransaction(newTransaction);
         } catch (error) {
-            console.error('Error handling new transaction:', error);
+            this.logger.error('Error handling new transaction:', error);
         }
     }
 
@@ -97,7 +97,7 @@ class MessageHandler {
                 this.broadcastBlock(block);
             }
         } catch (error) {
-            console.error('Error handling new block:', error);
+            this.logger.error('Error handling new block:', error);
         }
     }
 
@@ -109,7 +109,7 @@ class MessageHandler {
             chain: this.node.chain.chainData,
             pendingTransactions: Array.from(this.node.chain.pendingTransactions.values())
         };
-        //console.log("handleChainRequest - sending chain data:", data);
+        this.logger.debug('Sending chain data in response to request');
         
         this.sendMessage(sender, {
             type: MESSAGE_TYPES.SEND_CHAIN,
@@ -124,11 +124,7 @@ class MessageHandler {
         try {
             this.chain.replaceChain(chainData);
         } catch (error) {
-            if (envConfig.isDebugMode()) {
-                console.error('[Chain] Debug:', error);
-            } else {
-                console.log(`[Chain] Error: ${error.message}`);
-            }
+            this.logger.error('Error handling chain response:', error);
         }
     }
 
@@ -136,7 +132,7 @@ class MessageHandler {
      * 广播交易
      */
     broadcastTransaction(transaction) {
-        console.log("[P2P] Broadcasting transaction:", transaction);
+        this.logger.debug('Broadcasting transaction:', transaction);
         this.broadcast({
             type: MESSAGE_TYPES.NEW_TRANSACTION,
             data: transaction.toJSON()
@@ -174,12 +170,10 @@ class MessageHandler {
      */
     sendMessage(peer, message) {
         try {
-            if (envConfig.isDebugMode()) {
-                console.log(`[P2P] Sending message: ${JSON.stringify(message)}`);
-            }
+            this.logger.debug('Sending message:', JSON.stringify(message));
             peer.send(JSON.stringify(message));
         } catch (error) {
-            console.error('Error sending message:', error);
+            this.logger.error('Error sending message:', error);
         }
     }
 
@@ -188,7 +182,7 @@ class MessageHandler {
      */
     handleHandshake(data, sender) {
         const { port } = data;
-        console.log(`[P2P] Received handshake from peer on port ${port}`);
+        this.logger.info(`Received handshake from peer on port ${port}`);
 
         // 记录新的对等节点
         this.node.knownPeers.add(`ws://localhost:${port}`);
@@ -208,7 +202,7 @@ class MessageHandler {
      */
     handleHandshakeResponse(data) {
         const { port, peers } = data;
-        console.log(`[P2P] Received handshake response from peer on port ${port}`);
+        this.logger.info(`Received handshake response from peer on port ${port}`);
 
         // 添加新的已知节点
         peers.forEach(peerAddress => {
