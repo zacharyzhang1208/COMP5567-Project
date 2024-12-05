@@ -24,8 +24,7 @@ class EnvironmentConfig {
 	 */
 	constructor() {
 		this.requiredEnvVars = [
-			'HTTP_PORT',
-			'LEVELDB_PATH',			
+			'HTTP_PORT',		
 			'P2P_PORT_START',
 			'P2P_PORT_END'
 			// Add other required environment variables here
