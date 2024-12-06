@@ -8,6 +8,8 @@ export const MESSAGE_TYPES = {
     NEW_BLOCK: 'NEW_BLOCK',
     REQUEST_CHAIN: 'REQUEST_CHAIN',
     SEND_CHAIN: 'SEND_CHAIN',
+    REQUEST_POOL: 'REQUEST_POOL',
+    SEND_POOL: 'SEND_POOL',
     HANDSHAKE: 'HANDSHAKE',
     HANDSHAKE_RESPONSE: 'HANDSHAKE_RESPONSE'
 };
@@ -26,8 +28,9 @@ class MessageHandler {
      * 处理接收到的消息
      */
     handleMessage(message, sender) {
-
+        this.logger.info(`Received message type: ${message.type}`);
         this.logger.debug('Received message:', JSON.stringify(message));
+
         try {
             switch (message.type) {
                 case MESSAGE_TYPES.NEW_TRANSACTION:
@@ -42,6 +45,12 @@ class MessageHandler {
                 case MESSAGE_TYPES.SEND_CHAIN:
                     this.handleChainResponse(message.data);
                     break;
+                case MESSAGE_TYPES.REQUEST_POOL:
+                    this.handlePoolRequest(sender);
+                    break;
+                case MESSAGE_TYPES.SEND_POOL:
+                    this.handlePoolResponse(message.data);
+                    break;
                 case MESSAGE_TYPES.HANDSHAKE:
                     this.handleHandshake(message.data);
                     break;
@@ -50,7 +59,7 @@ class MessageHandler {
             }
         } catch (error) {
             this.logger.error('Error handling message:', error);
-            this.logger.debug('Message was:', message);
+            this.logger.error('Message was:', message);
         }
     }
 
@@ -103,15 +112,13 @@ class MessageHandler {
      * 处理链请求
      */
     handleChainRequest(sender) {
-        const data = {
-            chain: this.node.chain.chainData,
-            pendingTransactions: Array.from(this.node.chain.pendingTransactions.values())
+        const chainData = {
+            chain: this.node.chain.chainData
         };
-        this.logger.debug('Sending chain data in response to request');
         
         this.sendMessage(sender, {
             type: MESSAGE_TYPES.SEND_CHAIN,
-            data: data
+            data: chainData
         });
     }
 
@@ -120,9 +127,62 @@ class MessageHandler {
      */
     handleChainResponse(chainData) {
         try {
-            this.chain.replaceChain(chainData);
+            const { chain } = chainData;
+            this.chain.replaceChain(chain);
         } catch (error) {
             this.logger.error('Error handling chain response:', error);
+        }
+    }
+
+    /**
+     * 处理交易池请求
+     */
+    handlePoolRequest(sender) {
+        const poolData = {
+            transactions: Array.from(this.node.chain.pendingTransactions.values())
+        };
+        
+        this.sendMessage(sender, {
+            type: MESSAGE_TYPES.SEND_POOL,
+            data: poolData
+        });
+    }
+
+    /**
+     * 处理交易池响应
+     */
+    handlePoolResponse(poolData) {
+        try {
+            const { transactions } = poolData;
+            console.log("transactions while handling pool response", transactions);
+
+            transactions.forEach(txData => {
+                try {
+                    // 根据交易类型实例化对应的交易对象
+                    let transaction;
+                    switch (txData.type) {
+                        case 'USER_REGISTRATION':
+                            transaction = new UserRegistrationTransaction(txData);
+                            break;
+                        // ... 其他交易类型
+                        default:
+                            this.logger.warn(`Unknown transaction type: ${txData.type}`);
+                            return;  // 跳过未知类型的交易
+                    }
+
+                    // 验证交易并添加到池中
+                    if (transaction && transaction.isValid() && !this.chain.pendingTransactions.has(transaction.hash)) {
+                        this.chain.addTransaction(transaction);
+                    }
+                } catch (error) {
+                    this.logger.error('Error processing transaction:', error);
+                    // 继续处理下一个交易
+                }
+            });
+
+            this.logger.info('Transaction pool synchronized');
+        } catch (error) {
+            this.logger.error('Error handling pool response:', error);
         }
     }
 
@@ -169,8 +229,10 @@ class MessageHandler {
      */
     sendMessage(peer, message) {
         try {
-            this.logger.debug('Sending message:', JSON.stringify(message));
-            peer.send(JSON.stringify(message));
+            this.logger.info(`Sending message type: ${message.type}`);
+            const messageStr = JSON.stringify(message);
+            this.logger.debug(`Message content: ${messageStr}`);
+            peer.send(messageStr);
         } catch (error) {
             this.logger.error('Error sending message:', error);
         }

@@ -43,13 +43,17 @@ class P2PServer {
         server.on('connection', socket => {
             this.logger.info('New peer connected');
             this.node.peers.add(socket);
+            
+            // 这里设置了消息监听器
             socket.on('message', message => {
                 this.node.messageHandler.handleMessage(JSON.parse(message), socket);
             });
+
             socket.on('close', () => {
                 this.node.peers.delete(socket);
                 this.logger.info('Peer disconnected');
             });
+            
             socket.on('error', error => {
                 this.logger.error('WebSocket error:', error);
             });
@@ -109,6 +113,12 @@ class P2PServer {
                 this.node.peers.add(ws);
                 this.node.knownPeers.add(address);
                 
+                // 为客户端连接设置消息监听器
+                ws.on('message', message => {
+                    this.logger.debug(`Received message from ${address}`);
+                    this.node.messageHandler.handleMessage(JSON.parse(message), ws);
+                });
+
                 this.node.messageHandler.sendMessage(ws, {
                     type: MESSAGE_TYPES.HANDSHAKE,
                     data: { 

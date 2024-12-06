@@ -74,20 +74,75 @@ class Chain {
         }
 
         await this.loadChain();
-        await this.synchronizeChain();
+        await this.synchronize();
         console.log("tx_size",this.pendingTransactions.size)
         this.logger.info('Initialization completed');
         this.logger.debug(`Chain length: ${this.chainData.length}`);
         this.logger.debug(`Pending transactions: ${this.pendingTransactions.size}`);
     }
 
+    async synchronize() {
+        await this.synchronizeChain();
+        await this.synchronizePool();
+    }
+
     async synchronizeChain() {
         if (this.node.peers.size > 0) {
             this.logger.info('[Chain] Starting chain synchronization');
-            const randomPeer = Array.from(this.node.peers)[0];
-            this.node.messageHandler.sendMessage(randomPeer, {
-                type: MESSAGE_TYPES.REQUEST_CHAIN
+            
+            const syncPromises = Array.from(this.node.peers).map(peer => {
+                return new Promise((resolve) => {
+                    const messageHandler = (message) => {
+                        if (message.type === MESSAGE_TYPES.SEND_CHAIN) {
+                            peer.removeListener('message', messageHandler);
+                            resolve();
+                        }
+                    };
+                    peer.on('message', messageHandler);
+                    
+                    this.node.messageHandler.sendMessage(peer, {
+                        type: MESSAGE_TYPES.REQUEST_CHAIN
+                    });
+
+                    setTimeout(() => {
+                        peer.removeListener('message', messageHandler);
+                        resolve();
+                    }, 5000);
+                });
             });
+
+            await Promise.all(syncPromises);
+            this.logger.info('[Chain] Chain synchronization completed');
+        }
+    }
+
+    async synchronizePool() {
+        if (this.node.peers.size > 0) {
+            this.logger.info('[Pool] Starting pool synchronization');
+            
+            const syncPromises = Array.from(this.node.peers).map(peer => {
+                return new Promise((resolve) => {
+                    const messageHandler = (message) => {
+                        if (message.type === MESSAGE_TYPES.SEND_POOL) {
+                            peer.removeListener('message', messageHandler);
+                            resolve();
+                        }
+                    };
+                    peer.on('message', messageHandler);
+                    
+                    this.node.messageHandler.sendMessage(peer, {
+                        type: MESSAGE_TYPES.REQUEST_POOL
+                    });
+
+                    setTimeout(() => {
+                        peer.removeListener('message', messageHandler);
+                        resolve();
+                    }, 5000);
+                });
+            });
+
+            await Promise.all(syncPromises);
+            this.logger.info('[Pool] Pool synchronization completed');
         }
     }
 
@@ -238,20 +293,23 @@ class Chain {
 
     /**
      * 替换链（在收到更长的有效链时）
-     * @param {Object} chainData 包含 chain 和 pendingTransactions
      */
     replaceChain(chainData) {
-        const { chain: newChain, pendingTransactions } = chainData;
-        console.log("pendingTX",pendingTransactions)
+        const newChain  = chainData;
+        console.log("newChain received", newChain);
+
+
         // 将 JSON 数据转换为 Block 对象
         const newBlockChain = newChain.map(blockData => new Block(blockData));
 
-        // 新链必须更长
-        if (newBlockChain.length < this.chainData.length) {
-            throw new Error('New chain must be longer');
+        // 只有更长的链才考虑替换
+        if (newBlockChain.length <= this.chainData.length) {
+            this.logger.debug('Received chain is not longer than current chain');
+            return;  // 直接返回，不抛出错误
         }
-        // 验证新链       
-        else{
+
+        // 验证新链
+        try {
             this.logger.info("Validating new chain");
             for (let i = 1; i < newBlockChain.length; i++) {
                 const block = newBlockChain[i];
@@ -260,20 +318,24 @@ class Chain {
                     throw new Error('Invalid chain');
                 }
             }
+
+            // 验证通过后替换链
+            this.chainData = newBlockChain;
+            
+            // 更新待处理交易池
+            pendingTransactions.forEach(tx => {
+                this.pendingTransactions.set(tx.hash, tx);
+            });
+
+            // 清理交易池中已经包含在新链中的交易
+            this.cleanTransactionPool(newBlockChain);
+            this.saveChain();
+            
+            this.logger.info('Chain replaced successfully');
+        } catch (error) {
+            this.logger.error('Failed to replace chain:', error);
+            throw error;
         }
-
-        // 替换链
-        this.chainData = newBlockChain;
-        
-        // 更新待处理交易池
-        //this.pendingTransactions.clear();
-        pendingTransactions.forEach(tx => {
-            this.pendingTransactions.set(tx.hash, tx);
-        });
-
-        // 清理交易池中已经包含在新链中的交易
-        this.cleanTransactionPool(newBlockChain);
-        this.saveChain();
     }
 
     /**
