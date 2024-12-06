@@ -10,63 +10,44 @@ class TeacherNode extends BaseNode {
         super();
         this.isLoggedIn = false;
         this.currentUser = null;
-        
-        console.log('[Node] Setting up signal handlers...');
 
         process.on('SIGINT', async () => {
             console.log('\n[Node] Received SIGINT signal');
-            await this.shutdown();
-            process.exit(0);
+            // 使用 nextTick 确保 exit 处理器有机会执行
+            process.nextTick(() => process.exit(0));
         });
 
-        process.on('exit', (code) => {
+        process.on('exit', (code)=> {
             console.log(`\n[Node] Process exit with code: ${code}`);
         });
     }
 
-    async shutdown() {
-        try {
-            console.log('\n[Node] Starting shutdown process...');
+    // async shutdown() {
+    //     try {
+    //         console.log('\n[Node] Starting shutdown process...');
             
-            // 检查 chain 和 db 是否已初始化
-            if (this.chain) {
-                try {
-                    if (this.chain.db) {
-                        await this.chain.saveChain();
-                        await this.chain.db.close();
-                        console.log('[Node] Database closed');
-                    } else {
-                        console.log('[Node] No database connection to close');
-                    }
-                } catch (error) {
-                    console.error('[Node] Error during chain cleanup:', error);
-                }
-            }
+    //         // 1. 保存数据
+    //         if (this.chain) {
+    //             await this.chain.saveChain();
+    //             console.log('[Node] Chain data saved');
+    //         }
             
-            // 检查网络连接是否已初始化
-            if (this.peers) {
-                try {
-                    this.peers.forEach(peer => peer.close());
-                    console.log('[Node] Peer connections closed');
-                } catch (error) {
-                    console.error('[Node] Error closing peer connections:', error);
-                }
-            }
+    //         // 2. 关闭数据库
+    //         if (this.chain?.db) {
+    //             await this.chain.db.close();
+    //             console.log('[Node] Database closed');
+    //         }
+            
+    //         // 3. 关闭网络连接
+    //         this.peers?.forEach(peer => peer.close());
+    //         this.p2pServer?.server?.close();
+    //         console.log('[Node] Network connections closed');
 
-            if (this.p2pServer && this.p2pServer.server) {
-                try {
-                    this.p2pServer.server.close();
-                    console.log('[Node] P2P server closed');
-                } catch (error) {
-                    console.error('[Node] Error closing P2P server:', error);
-                }
-            }
-
-            console.log('[Node] Shutdown completed');
-        } catch (error) {
-            console.error('[Node] Error during shutdown:', error);
-        }
-    }
+    //         console.log('[Node] Shutdown completed');
+    //     } catch (error) {
+    //         console.error('[Node] Error during shutdown:', error);
+    //     }
+    // }
 
     async login() {
         console.log('\n=== Teacher Node Login ===');

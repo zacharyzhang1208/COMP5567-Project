@@ -110,9 +110,19 @@ class PortUtils {
  * Process Exit Handlers
  */
 
-// 只在进程真正退出时清理
+// 确保在进程退出时清理端口锁
 process.on('exit', () => {
-    console.log('\n[Port] Cleaning up port locks...');
+    try {
+        console.log('\n[Port] Cleaning up port locks...');
+        PortUtils.cleanupLocks();
+        console.log('[Port] Port locks cleaned up');
+    } catch (error) {
+        console.error('[Port] Error cleaning up locks:', error);
+    }
+});
+
+process.on('SIGINT', () => {
+    console.log('\n[Port] Received SIGINT, cleaning up...');
     PortUtils.cleanupLocks();
 });
 

@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon --config nodemon.json src/app.js"
+    "dev": "nodemon --signal SIGINT src/app.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
