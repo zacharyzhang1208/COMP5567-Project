@@ -94,7 +94,6 @@ class Chain {
         try {
             console.log("loading chain");
             const chainData = await this.db.get('chain');
-            console.log(chainData);
             const parsedChainData = JSON.parse(chainData);
             
             // 验证第一个区块是否是正确的创世区块

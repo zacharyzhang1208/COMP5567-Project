@@ -154,7 +154,6 @@ class MessageHandler {
     handlePoolResponse(poolData) {
         try {
             const { transactions } = poolData;
-            console.log("transactions while handling pool response", transactions);
 
             transactions.forEach(txData => {
                 try {

@@ -9,6 +9,49 @@ class TeacherNode extends BaseNode {
         super();
         this.isLoggedIn = false;
         this.currentUser = null;
+        
+        // 添加进程退出处理
+        process.on('SIGINT', async () => {
+            await this.shutdown();
+            process.exit(0);
+        });
+        
+        process.on('SIGTERM', async () => {
+            await this.shutdown();
+            process.exit(0);
+        });
+        
+        // 处理未捕获的异常
+        process.on('uncaughtException', async (error) => {
+            console.error('Uncaught Exception:', error);
+            await this.shutdown();
+            process.exit(1);
+        });
+    }
+
+    async shutdown() {
+        try {
+            // 1. 保存所有待处理数据
+            await this.chain.saveChain();
+            
+            // 2. 关闭数据库连接
+            if (this.chain.db) {
+                await this.chain.db.close();
+            }
+            
+            // 3. 关闭所有网络连接
+            this.peers.forEach(peer => peer.close());
+            if (this.p2pServer.server) {
+                this.p2pServer.server.close();
+            }
+            
+            // 4. 清理临时文件
+            // ...
+
+            console.log('Node shutdown completed');
+        } catch (error) {
+            console.error('Error during shutdown:', error);
+        }
     }
 
     async login() {
@@ -45,7 +88,6 @@ class TeacherNode extends BaseNode {
         const isValid = CryptoUtil.verify(userRegTx.hash, signature, this.currentUser.publicKey);
 
         this.chain.addTransaction(userRegTx);
-        console.log("tx_size",this.chain.pendingTransactions.size)
         await this.messageHandler.broadcastTransaction(userRegTx);
         await this.chain.saveChain();
         

@@ -75,7 +75,6 @@ class Chain {
 
         await this.loadChain();
         await this.synchronize();
-        console.log("tx_size",this.pendingTransactions.size)
         this.logger.info('Initialization completed');
         this.logger.debug(`Chain length: ${this.chainData.length}`);
         this.logger.debug(`Pending transactions: ${this.pendingTransactions.size}`);
@@ -296,8 +295,6 @@ class Chain {
      */
     replaceChain(chainData) {
         const newChain  = chainData;
-        console.log("newChain received", newChain);
-
 
         // 将 JSON 数据转换为 Block 对象
         const newBlockChain = newChain.map(blockData => new Block(blockData));
