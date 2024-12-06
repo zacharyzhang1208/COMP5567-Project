@@ -108,38 +108,12 @@ class PortUtils {
 
 /**
  * Process Exit Handlers
- * 
- * We need to handle different types of process termination to ensure proper cleanup:
- * 
- * 1. 'exit': Normal process exit
- *    - Emitted when process is about to exit
- *    - Only synchronous operations allowed
- *    - Last chance for cleanup
- * 
- * 2. 'SIGINT': Interrupt signal
- *    - Typically triggered by Ctrl+C
- *    - Allows async operations
- *    - Must call process.exit() manually
- * 
- * 3. 'SIGTERM': Termination signal
- *    - External termination request
- *    - Common in development (nodemon) and production (Docker)
- *    - Allows async operations
- *    - Must call process.exit() manually
  */
 
+// 只在进程真正退出时清理
 process.on('exit', () => {
+    console.log('\n[Port] Cleaning up port locks...');
     PortUtils.cleanupLocks();
-});
-
-process.on('SIGINT', () => {
-    PortUtils.cleanupLocks();
-    process.exit();
-});
-
-process.on('SIGTERM', () => {
-    PortUtils.cleanupLocks();
-    process.exit();
 });
 
 export default PortUtils; 

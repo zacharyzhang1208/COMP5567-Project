@@ -1,5 +1,10 @@
 {
-    "watch": [
-        "src/"
-    ]
+    "verbose": true,
+    "ignore": [
+        "node_modules",
+        ".git",
+        ".data",
+        ".locks"
+    ],
+    "delay": 1000
 } 

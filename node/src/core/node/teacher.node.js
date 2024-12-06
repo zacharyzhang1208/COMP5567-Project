@@ -3,6 +3,7 @@ import CryptoUtil from '../../utils/crypto.js';
 import { UserRegistrationTransaction } from '../blockchain/transaction.js';
 import Block from '../blockchain/block.js';
 import CLI from '../../utils/cli.js';
+import PortUtils from '../../utils/port.js';
 
 class TeacherNode extends BaseNode {
     constructor() {
@@ -10,47 +11,60 @@ class TeacherNode extends BaseNode {
         this.isLoggedIn = false;
         this.currentUser = null;
         
-        // 添加进程退出处理
+        console.log('[Node] Setting up signal handlers...');
+
         process.on('SIGINT', async () => {
+            console.log('\n[Node] Received SIGINT signal');
             await this.shutdown();
             process.exit(0);
         });
-        
-        process.on('SIGTERM', async () => {
-            await this.shutdown();
-            process.exit(0);
-        });
-        
-        // 处理未捕获的异常
-        process.on('uncaughtException', async (error) => {
-            console.error('Uncaught Exception:', error);
-            await this.shutdown();
-            process.exit(1);
+
+        process.on('exit', (code) => {
+            console.log(`\n[Node] Process exit with code: ${code}`);
         });
     }
 
     async shutdown() {
         try {
-            // 1. 保存所有待处理数据
-            await this.chain.saveChain();
+            console.log('\n[Node] Starting shutdown process...');
             
-            // 2. 关闭数据库连接
-            if (this.chain.db) {
-                await this.chain.db.close();
+            // 检查 chain 和 db 是否已初始化
+            if (this.chain) {
+                try {
+                    if (this.chain.db) {
+                        await this.chain.saveChain();
+                        await this.chain.db.close();
+                        console.log('[Node] Database closed');
+                    } else {
+                        console.log('[Node] No database connection to close');
+                    }
+                } catch (error) {
+                    console.error('[Node] Error during chain cleanup:', error);
+                }
             }
             
-            // 3. 关闭所有网络连接
-            this.peers.forEach(peer => peer.close());
-            if (this.p2pServer.server) {
-                this.p2pServer.server.close();
+            // 检查网络连接是否已初始化
+            if (this.peers) {
+                try {
+                    this.peers.forEach(peer => peer.close());
+                    console.log('[Node] Peer connections closed');
+                } catch (error) {
+                    console.error('[Node] Error closing peer connections:', error);
+                }
             }
-            
-            // 4. 清理临时文件
-            // ...
 
-            console.log('Node shutdown completed');
+            if (this.p2pServer && this.p2pServer.server) {
+                try {
+                    this.p2pServer.server.close();
+                    console.log('[Node] P2P server closed');
+                } catch (error) {
+                    console.error('[Node] Error closing P2P server:', error);
+                }
+            }
+
+            console.log('[Node] Shutdown completed');
         } catch (error) {
-            console.error('Error during shutdown:', error);
+            console.error('[Node] Error during shutdown:', error);
         }
     }
 
