@@ -98,12 +98,22 @@ export class UserRegistrationTransaction extends BaseTransaction {
 
 // 课程创建交易
 export class CourseCreationTransaction extends BaseTransaction {
-    constructor({ courseId, teacherId, courseName, ...rest }) {
+    constructor({ courseId, userId, courseName, ...rest }) {
         super('COURSE_CREATE', rest);
         this.courseId = courseId;
-        this.teacherId = teacherId;
+        this.userId = userId;
         this.courseName = courseName;
         this.hash = this.calculateHash();
+    }
+
+    calculateHash() {
+        return CryptoUtil.hash(
+            this.type +
+            this.userId +
+            this.userType +
+            this.courseName +
+            this.timestamp
+        );
     }
 
     toJSON() {
