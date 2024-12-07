@@ -1,4 +1,4 @@
-import { BaseTransaction, UserRegistrationTransaction } from '../core/blockchain/transaction.js';
+import { UserRegistrationTransaction, SubmitAttendanceTransaction, CourseEnrollmentTransaction } from '../core/blockchain/transaction.js';
 import Block from '../core/blockchain/block.js';
 import Logger from '../utils/logger.js';
 
@@ -68,15 +68,25 @@ class MessageHandler {
      */
     handleNewTransaction(transaction) {
         try {
+            // 声明变量
+            let newTransaction;
             
             // 传入的是JSON数据（来自网络消息）
             switch (transaction.type) {
                 case 'USER_REGISTRATION':
                     newTransaction = new UserRegistrationTransaction(transaction);
                     break;
-                // ... 其他 case
+                case 'SUBMIT_ATTENDANCE':
+                    newTransaction = new SubmitAttendanceTransaction(transaction);
+                    break;
+                case 'COURSE_ENROLLMENT':
+                    newTransaction = new CourseEnrollmentTransaction(transaction);
+                    break;
+                default:
+                    this.logger.warn(`Unknown transaction type: ${transaction.type}`);
+                    return;  // 跳过未知类型的交易
             }
-            
+
             if (!newTransaction.isValid()) {
                 throw new Error('Transaction is invalid');
             }
