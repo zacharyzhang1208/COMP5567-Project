@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { UserRegistrationTransaction } from '../core/blockchain/transaction.js';
+import { UserRegistrationTransaction, CourseEnrollmentTransaction, SubmitAttendanceTransaction } from '../core/blockchain/transaction.js';
 import CryptoUtil from '../utils/crypto.js';
 import Logger from '../utils/logger.js';
 import axios from 'axios';
@@ -129,30 +129,33 @@ class HttpServer {
         // 学生交易请求接口
         this.app.post('/student/transaction', async (req, res) => {
             try {
-                const { studentId, transactionData } = req.body;
-                this.logger.infoReceived(` transaction request from student ID: ${studentId}`);
+                const { type, ...transactionData } = req.body;
+                this.logger.info(`Received transaction request of type: ${type}`);
 
-                // 遍历所有已上线的教师节点
-                const teacherNodes = Array.from(this.teacherMappings.values());
-                if (teacherNodes.length === 0) {
-                    this.logger.warn('No teacher nodes are currently online');
-                    return res.status(404).json({ error: 'No teacher nodes available' });
+                // 将type附加到transactionData中
+                transactionData.type = type;
+
+                let transaction;
+                switch (type) {
+                    case 'USER_REGISTRATION':
+                        transaction = new UserRegistrationTransaction(transactionData);
+                        break;
+                    case 'COURSE_ENROLLMENT':
+                        transaction = new CourseEnrollmentTransaction(transactionData);
+                        break;
+                    case 'SUBMIT_ATTENDANCE':
+                        transaction = new SubmitAttendanceTransaction(transactionData);
+                        break;
+                    default:
+                        throw new Error('Unknown transaction type');
                 }
 
-                // 广播交易请求到所有教师节点
-                const broadcastResults = await Promise.all(teacherNodes.map(async (teacherMapping) => {
-                    try {
-                        const teacherUrl = `http://${teacherMapping.ipAddress}:${teacherMapping.port}/transaction`;
-                        const response = await axios.post(teacherUrl, { transactionData });
-                        this.logger.info(`Transaction forwarded to teacher at ${teacherMapping.ipAddress}:${teacherMapping.port}`);
-                        return { success: true, data: response.data };
-                    } catch (error) {
-                        this.logger.error(`Failed to forward transaction to teacher at ${teacherMapping.ipAddress}:${teacherMapping.port}:`, error);
-                        return { success: false, error: error.message };
-                    }
-                }));
+                console.log("transactionData:",transaction);
+                // 广播交易到所有教师节点
+                this.node.messageHandler.broadcastTransaction(transaction);
 
-                res.json({ success: true, results: broadcastResults });
+                this.logger.info(`Transaction of type ${type} created and broadcasted successfully`);
+                res.json({ success: true, transactionHash: transaction.hash });
             } catch (error) {
                 this.logger.error('Failed to process student transaction request:', error);
                 res.status(400).json({ error: error.message });
