@@ -103,6 +103,7 @@ export class CourseCreationTransaction extends BaseTransaction {
         this.courseId = courseId;
         this.teacherId = teacherId;
         this.courseName = courseName;
+        this.hash = this.calculateHash();
     }
 
     toJSON() {
@@ -121,6 +122,7 @@ export class CourseEnrollmentTransaction extends BaseTransaction {
         super('COURSE_ENROLLMENT', rest);
         this.studentId = studentId;
         this.courseId = courseId;
+        this.hash = this.calculateHash();
     }
 
     toJSON() {
@@ -140,6 +142,7 @@ export class PublishAttendanceTransaction extends BaseTransaction {
         this.teacherId = teacherId;
         this.validPeriod = validPeriod;  // 签到有效期
         this.verificationCode = this.generateVerificationCode();  // 生成6位验证码
+        this.hash = this.calculateHash();
     }
 
     // 生成6位验证码
@@ -165,18 +168,28 @@ export class PublishAttendanceTransaction extends BaseTransaction {
 
 // 签到交易
 export class SubmitAttendanceTransaction extends BaseTransaction {
-    constructor({ studentId, courseId, verificationCode, timestamp, ...rest }) {
+    constructor({ userId, courseId, verificationCode, ...rest }) {
         super('SUBMIT_ATTENDANCE', rest);
-        this.studentId = studentId;
+        this.userId = userId;
         this.courseId = courseId;
         this.verificationCode = verificationCode;  // 学生输入的验证码
-        this.timestamp = timestamp || Date.now();
+        this.hash = this.calculateHash();
+    }
+
+    calculateHash(){
+        return CryptoUtil.hash(
+            this.type +
+            this.userId +
+            this.courseId +
+            this.verificationCode +
+            this.timestamp
+        );
     }
 
     toJSON() {
         return {
             ...super.toJSON(),
-            studentId: this.studentId,
+            userId: this.userId,
             courseId: this.courseId,
             verificationCode: this.verificationCode,
             timestamp: this.timestamp

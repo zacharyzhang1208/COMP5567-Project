@@ -43,7 +43,7 @@ class BaseNode extends EventEmitter {
             this.status = 'starting';
             await this.onStart();
             this.status = 'running';
-            console.log('[Node] Node is running');
+            console.log('[Node] Apiserver is running');
         } catch (error) {
             this.status = 'error';
             throw error;
