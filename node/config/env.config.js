@@ -21,7 +21,9 @@ class EnvironmentConfig {
 		this.requiredEnvVars = [
 			'P2P_PORT_START',
 			'P2P_PORT_END',
-			'DEBUG_MODE'
+			'DEBUG_MODE',
+			'API_SERVER_IP',
+			'API_SERVER_PORT'
 		];
 		this.init();
 	}
@@ -157,6 +159,13 @@ class EnvironmentConfig {
 	 */
 	isDebugMode() {
 		return process.env.DEBUG_MODE.toLowerCase() === 'true';
+	}
+
+	getApiServerConfig() {
+		return {
+			ip: process.env.API_SERVER_IP,
+			port: process.env.API_SERVER_PORT
+		};
 	}
 }
 

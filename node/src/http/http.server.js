@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import { UserRegistrationTransaction } from '../core/blockchain/transaction.js';
-import CryptoUtil from '../utils/crypto.js';
 import Logger from '../utils/logger.js';
 
 class HttpServer {
@@ -101,6 +100,33 @@ class HttpServer {
                     success: false,
                     error: error.message
                 });
+            }
+        });
+
+        // 登录路由
+        this.app.post('/login', async (req, res) => {
+            try {
+                const { username, publicKey, encryptedPrivateKeyHash } = req.body;
+                
+                // 在区块链中查找用户注册交易
+                const userRegTx = UserRegistrationTransaction.findByUsername(this.node.chain, username);
+                if (!userRegTx) {
+                    return res.status(404).json({ message: 'User not found' });
+                }
+
+                // 验证哈希值
+                if (userRegTx.encryptedPrivateKeyHash !== encryptedPrivateKeyHash) {
+                    return res.status(401).json({ message: 'Invalid credentials' });
+                }
+
+                // 返回用户信息
+                res.json({
+                    success: true,
+                    role: userRegTx.userType
+                });
+            } catch (error) {
+                this.logger.error('Login error:', error);
+                res.status(500).json({ message: 'Internal server error' });
             }
         });
     }

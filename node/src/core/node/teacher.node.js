@@ -3,38 +3,48 @@ import CryptoUtil from '../../utils/crypto.js';
 import { UserRegistrationTransaction } from '../blockchain/transaction.js';
 import Block from '../blockchain/block.js';
 import CLI from '../../utils/cli.js';
+import fetch from 'node-fetch';
+import { envConfig } from '../../../config/env.config.js';
+import NetworkUtils from '../../utils/network.js';
 
 class TeacherNode extends BaseNode {
     constructor() {
         super();
         this.isLoggedIn = false;
         this.currentUser = null;
+        this.mapInterval = null;  // 添加定时器引用
 
         process.on('SIGINT', async () => {
             console.log('\n[Node] Received SIGINT signal');
-            // 使用 nextTick 确保 exit 处理器有机会执行
-            process.exit(0);
-        });
+            
+            // 清理定时器
+            if (this.mapInterval) {
+                clearInterval(this.mapInterval);
+            }
 
-        process.on('exit', (code)=> {
-            console.log(`\n[Node] Process exit with code: ${code}`);
+            // 发送取消映射请求
+            if (this.currentUser) {
+                await this.sendUnmapRequest();
+            }
+
+            process.nextTick(() => process.exit(0));
         });
     }
 
     async login() {
         console.log('\n=== Node Login ===');
-        const username = await CLI.prompt('Username: ');
+        const userId = await CLI.prompt('UserId: ');
         const password = await CLI.prompt('Password: ');
 
         // 1. 生成密钥对
-        const { publicKey, privateKey } = CryptoUtil.generateKeyPair(username, password);
+        const { publicKey, privateKey } = CryptoUtil.generateKeyPair(userId, password);
         
         // 2. 生成加密后的私钥哈希
         const encryptedPrivateKey = CryptoUtil.encrypt(privateKey, password);
         const encryptedPrivateKeyHash = CryptoUtil.hash(encryptedPrivateKey);
 
         // 3. 在区块链中查找用户注册交易
-        const userRegTx = UserRegistrationTransaction.findByUsername(this.chain, username);
+        const userRegTx = UserRegistrationTransaction.findByUsername(this.chain, userId);
         if (!userRegTx) {
             console.log('\n[Node] User not found');
             return false;
@@ -45,21 +55,64 @@ class TeacherNode extends BaseNode {
             console.log('\n[Node] Invalid credentials');
             return false;
         }
+        // 5. 发送首次心跳请求
+        if (!await this.sendMapRequest(userId)) {
+            return false;
+        }
 
-        // 5. 登录成功，保存用户信息
+        // 6. 保存用户信息
         this.isLoggedIn = true;
         this.currentUser = {
-            privateKey,                    // 原始私钥（用于签名）
-            publicKey,                     // 公钥
-            username,                      // 用户名
-            password,                      // 密码（用于加密/解密）
-            encryptedPrivateKey,          // 加密后的私钥
-            encryptedPrivateKeyHash,      // 加密后私钥的哈希值
-            role: userRegTx.userType      // 从链上获取用户角色
+            privateKey,
+            publicKey,
+            userId,
+            password,
+            encryptedPrivateKey,
+            encryptedPrivateKeyHash,
+            role: userRegTx.userType  // 从链上获取用户角色
         };
+
+        // 7. 启动定时心跳任务
+        this.startMapInterval(userId);
         
-        console.log(`\nWelcome, ${username}!`);
+        console.log(`\nWelcome, ${userId}!`);
         return true;
+    }
+
+    // 发送映射请求
+    async sendMapRequest(userId) {
+        const { ip, port } = envConfig.getApiServerConfig();
+        try {
+            const response = await fetch(`http://${ip}:${port}/teacher/heartbeat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    userId,
+                    host: NetworkUtils.getLocalIP(),
+                    port: this.port+1000,
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                console.log('\n[Node] Mapping failed:', error.message);
+                return false;
+            }
+            return true;
+        } catch (error) {
+            console.error('\n[Node] Network error during mapping:', error.message);
+            return false;
+        }
+    }
+
+    // 启动定时映射任务
+    startMapInterval(userId) {
+        // 存储定时器ID以便清理
+        this.mapInterval = setInterval(async () => {
+            await this.sendMapRequest(userId);
+        }, 30000);  // 每30秒执行一次
     }
 
     async onStart() {
