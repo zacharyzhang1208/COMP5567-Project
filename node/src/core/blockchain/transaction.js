@@ -103,6 +103,7 @@ export class CourseCreationTransaction extends BaseTransaction {
         this.courseId = courseId;
         this.teacherId = teacherId;
         this.courseName = courseName;
+        this.hash = this.calculateHash();
     }
 
     toJSON() {
@@ -140,6 +141,7 @@ export class PublishAttendanceTransaction extends BaseTransaction {
         this.teacherId = teacherId;
         this.validPeriod = validPeriod;  // 签到有效期
         this.verificationCode = this.generateVerificationCode();  // 生成6位验证码
+        this.hash = this.calculateHash();
     }
 
     // 生成6位验证码

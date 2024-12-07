@@ -22,11 +22,6 @@ class TeacherNode extends BaseNode {
                 clearInterval(this.mapInterval);
             }
 
-            // 发送取消映射请求
-            if (this.currentUser) {
-                await this.sendUnmapRequest();
-            }
-
             process.nextTick(() => process.exit(0));
         });
     }
@@ -135,6 +130,7 @@ class TeacherNode extends BaseNode {
         userRegTx.signature = signature;
 
         this.chain.addTransaction(userRegTx);
+        console.log('userRegTx', userRegTx);
         await this.messageHandler.broadcastTransaction(userRegTx);
         await this.chain.saveChain();
         console.log('pendingTransactions.size', this.chain.pendingTransactions.size);
