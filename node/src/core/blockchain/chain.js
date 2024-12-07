@@ -136,7 +136,6 @@ class Chain {
 
             try {
                 const chainData = await this.db.get('chain');
-                console.log("chainData", chainData);
                 if (!chainData) {
                     this.logger.info('No chain data found, starting with genesis block');
                     
