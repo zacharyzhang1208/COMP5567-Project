@@ -1,3 +1,6 @@
-.vscode/
+# Dependencies
 node_modules/
+# Data directory
+data/
+# Environment variables
 .env

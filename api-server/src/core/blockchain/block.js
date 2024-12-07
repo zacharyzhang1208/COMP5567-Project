@@ -1,8 +1,52 @@
 import { createHash } from 'crypto';
-import Transactions from './transaction.js';
+import { UserRegistrationTransaction } from './transaction.js';
 import CryptoUtil from '../../utils/crypto.js';
 
 class Block {
+    // 生成固定的管理员密钥对
+    static ADMIN_KEYS = CryptoUtil.generateKeyPair('admin', 'admin_password');
+
+    // 定义管理员信息
+    static ADMIN_INFO = {
+        id: 'admin',
+        publicKey: Block.ADMIN_KEYS.publicKey,
+        privateKey: Block.ADMIN_KEYS.privateKey,
+        role: 'ADMIN'
+    };
+
+    // 定义统一的创世区块
+    static GENESIS_BLOCK = (() => {
+        // 创建管理员注册交易
+        const encryptedPrivateKeyHash = CryptoUtil.hash(
+            CryptoUtil.encrypt(Block.ADMIN_INFO.privateKey, 'admin_password')
+        );
+
+        const adminRegTx = new UserRegistrationTransaction({
+            userId: Block.ADMIN_INFO.id,
+            userType: Block.ADMIN_INFO.role,
+            publicKey: Block.ADMIN_INFO.publicKey,
+            encryptedPrivateKeyHash: encryptedPrivateKeyHash,
+            timestamp: 1701676800000,  // 2023-12-04 12:00:00 UTC
+            signature: ''
+        });
+
+        const signature = CryptoUtil.sign(adminRegTx.hash, Block.ADMIN_INFO.privateKey);
+        adminRegTx.signature = signature;
+
+        // 创建创世区块
+        const block = new Block({
+            timestamp: 1701676800000,  // 2023-12-04 12:00:00 UTC
+            transactions: [adminRegTx],  // 包含管理员注册交易
+            previousHash: '0',
+            validatorId: 'genesis',
+            validatorPubKey: '',
+            signature: ''
+        });
+
+        block.hash = block.calculateHash();
+        return block;
+    })();
+
     constructor({
         timestamp,
         transactions,
@@ -32,13 +76,10 @@ class Block {
             validatorId: this.validatorId,
             validatorPubKey: this.validatorPubKey
         };
-        console.log("data in calculateHash",data);
         
-        const result = createHash('sha256')
+        return createHash('sha256')
             .update(JSON.stringify(data))
             .digest('hex');
-        console.log("result in calculateHash",result);
-        return result;
     }
 
     /**
@@ -50,8 +91,6 @@ class Block {
         return this.transactions.every(transaction => {
             // 基本的交易验证
             if (!transaction.hash || transaction.hash !== transaction.calculateHash()) {
-                console.log("c3");
-                console.log("transaction is not valid", transaction.hash, transaction.calculateHash());
                 return false;
             }
             
@@ -78,7 +117,7 @@ class Block {
      */
     validateUserRegistration(transaction) {
         return (
-            transaction instanceof Transactions.UserRegistrationTransaction &&
+            transaction instanceof UserRegistrationTransaction &&
             transaction.userId &&
             transaction.userType &&
             transaction.publicKey &&

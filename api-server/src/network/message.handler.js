@@ -1,5 +1,6 @@
-import { BaseTransaction, UserRegistrationTransaction, CourseCreationTransaction } from '../core/blockchain/transaction.js';
+import { BaseTransaction, UserRegistrationTransaction } from '../core/blockchain/transaction.js';
 import Block from '../core/blockchain/block.js';
+import Logger from '../utils/logger.js';
 
 // 定义消息类型
 export const MESSAGE_TYPES = {
@@ -7,6 +8,8 @@ export const MESSAGE_TYPES = {
     NEW_BLOCK: 'NEW_BLOCK',
     REQUEST_CHAIN: 'REQUEST_CHAIN',
     SEND_CHAIN: 'SEND_CHAIN',
+    REQUEST_POOL: 'REQUEST_POOL',
+    SEND_POOL: 'SEND_POOL',
     HANDSHAKE: 'HANDSHAKE',
     HANDSHAKE_RESPONSE: 'HANDSHAKE_RESPONSE'
 };
@@ -14,6 +17,7 @@ export const MESSAGE_TYPES = {
 class MessageHandler {
     constructor(node) {
         this.node = node;  // TeacherNode 实例
+        this.logger = new Logger('MSG');
     }
 
     get chain() {
@@ -24,13 +28,9 @@ class MessageHandler {
      * 处理接收到的消息
      */
     handleMessage(message, sender) {
-        // 检查消息发送者
-        if (message.sender && message.sender.port === this.node.port) {
-            console.log('[P2P] Ignoring message from self');
-            return;
-        }
+        this.logger.info(`Received message type: ${message.type}`);
+        this.logger.debug('Received message:', JSON.stringify(message));
 
-        console.log(`[P2P] Received message: ${JSON.stringify(message)}`);
         try {
             switch (message.type) {
                 case MESSAGE_TYPES.NEW_TRANSACTION:
@@ -45,18 +45,21 @@ class MessageHandler {
                 case MESSAGE_TYPES.SEND_CHAIN:
                     this.handleChainResponse(message.data);
                     break;
-                case MESSAGE_TYPES.HANDSHAKE:
-                    this.handleHandshake(message.data, sender);
+                case MESSAGE_TYPES.REQUEST_POOL:
+                    this.handlePoolRequest(sender);
                     break;
-                case MESSAGE_TYPES.HANDSHAKE_RESPONSE:
-                    this.handleHandshakeResponse(message.data);
+                case MESSAGE_TYPES.SEND_POOL:
+                    this.handlePoolResponse(message.data);
+                    break;
+                case MESSAGE_TYPES.HANDSHAKE:
+                    this.handleHandshake(message.data);
                     break;
                 default:
-                    console.warn(`Unknown message type: ${message.type}`);
+                    this.logger.warn(`Unknown message type: ${message.type}`);
             }
         } catch (error) {
-            console.error('Error handling message:', error);
-            console.error('Message was:', message);
+            this.logger.error('Error handling message:', error);
+            this.logger.error('Message was:', message);
         }
     }
 
@@ -65,10 +68,13 @@ class MessageHandler {
      */
     handleNewTransaction(transaction) {
         try {
+            
             // 传入的是JSON数据（来自网络消息），需要实例化
             let newTransaction;
+            console.log("transaction.type:", transaction.type);
             switch (transaction.type) {
                 case 'USER_REGISTRATION':
+                    console.log("Handleing new transaction");
                     newTransaction = new UserRegistrationTransaction(transaction);
                     break;
                 // ... 其他 case
@@ -77,9 +83,12 @@ class MessageHandler {
             if (!newTransaction.isValid()) {
                 throw new Error('Transaction is invalid');
             }
+            
             this.chain.addTransaction(newTransaction);
+            this.chain.saveChain();
+            console.log("pendingTransactions.size:", this.chain.pendingTransactions.size);
         } catch (error) {
-            console.error('Error handling new transaction:', error);
+            this.logger.error('Error handling new transaction:', error);
         }
     }
 
@@ -95,7 +104,7 @@ class MessageHandler {
                 this.broadcastBlock(block);
             }
         } catch (error) {
-            console.error('Error handling new block:', error);
+            this.logger.error('Error handling new block:', error);
         }
     }
 
@@ -103,15 +112,13 @@ class MessageHandler {
      * 处理链请求
      */
     handleChainRequest(sender) {
-        const data = {
-            chain: this.node.chain.chainData,
-            pendingTransactions: Array.from(this.node.chain.pendingTransactions.values())
+        const chainData = {
+            chain: this.node.chain.chainData
         };
-        //console.log("handleChainRequest - sending chain data:", data);
         
         this.sendMessage(sender, {
             type: MESSAGE_TYPES.SEND_CHAIN,
-            data: data
+            data: chainData
         });
     }
 
@@ -120,11 +127,61 @@ class MessageHandler {
      */
     handleChainResponse(chainData) {
         try {
-            // 验证并可能替换当前链
-            //console.log("chainData", chainData);
-            this.chain.replaceChain(chainData);
+            const { chain } = chainData;
+            this.chain.replaceChain(chain);
         } catch (error) {
-            console.error('Error handling chain response:', error);
+            this.logger.error('Error handling chain response:', error);
+        }
+    }
+
+    /**
+     * 处理交易池请求
+     */
+    handlePoolRequest(sender) {
+        const poolData = {
+            transactions: Array.from(this.node.chain.pendingTransactions.values())
+        };
+        
+        this.sendMessage(sender, {
+            type: MESSAGE_TYPES.SEND_POOL,
+            data: poolData
+        });
+    }
+
+    /**
+     * 处理交易池响应
+     */
+    handlePoolResponse(poolData) {
+        try {
+            const { transactions } = poolData;
+
+            transactions.forEach(txData => {
+                try {
+                    // 根据交易类型实例化对应的交易对象
+                    let transaction;
+                    switch (txData.type) {
+                        case 'USER_REGISTRATION':
+                            transaction = new UserRegistrationTransaction(txData);
+                            break;
+                        // ... 其他交易类型
+                        default:
+                            this.logger.warn(`Unknown transaction type: ${txData.type}`);
+                            return;  // 跳过未知类型的交易
+                    }
+
+                    // 验证交易并添加到池中
+                    if (transaction && transaction.isValid() && !this.chain.pendingTransactions.has(transaction.hash)) {
+                        this.chain.addTransaction(transaction);
+                    }
+                } catch (error) {
+                    this.logger.error('Error processing transaction:', error);
+                    // 继续处理下一个交易
+                }
+            });
+
+            this.logger.info('Transaction pool synchronized');
+        } catch (error) {
+            this.logger.error('Error handling pool response:', error);
         }
     }
 
@@ -132,7 +189,7 @@ class MessageHandler {
      * 广播交易
      */
     broadcastTransaction(transaction) {
-        console.log("broadcastTransaction", transaction);
+        this.logger.debug('Broadcasting transaction:', transaction);
         this.broadcast({
             type: MESSAGE_TYPES.NEW_TRANSACTION,
             data: transaction.toJSON()
@@ -153,6 +210,7 @@ class MessageHandler {
      * 广播消息给所有节点
      */
     broadcast(message) {
+        //console.log("peers.length:", this.node.peers);
         // 添加发送者标识
         const messageWithSender = {
             ...message,
@@ -170,48 +228,27 @@ class MessageHandler {
      */
     sendMessage(peer, message) {
         try {
-            console.log(`[P2P] Sending message: ${JSON.stringify(message)}`);
-            peer.send(JSON.stringify(message));
+            this.logger.info(`Sending message type: ${message.type}`);
+            const messageStr = JSON.stringify(message);
+            this.logger.debug(`Message content: ${messageStr}`);
+            peer.send(messageStr);
         } catch (error) {
-            console.error('Error sending message:', error);
+            this.logger.error('Error sending message:', error);
         }
     }
 
     /**
      * 处理握手消息
      */
-    handleHandshake(data, sender) {
-        const { port } = data;
-        console.log(`[P2P] Received handshake from peer on port ${port}`);
+    handleHandshake(data) {
+        const { address } = data;
+        this.logger.info(`Received handshake from peer at ${address}`);
 
-        // 记录新的对等节点
-        this.node.knownPeers.add(`ws://localhost:${port}`);
-
-        // 发送握手响应
-        this.sendMessage(sender, {
-            type: MESSAGE_TYPES.HANDSHAKE_RESPONSE,
-            data: {
-                port: this.node.port,
-                peers: Array.from(this.node.knownPeers)
-            }
-        });
-    }
-
-    /**
-     * 处理握手响应
-     */
-    handleHandshakeResponse(data) {
-        const { port, peers } = data;
-        console.log(`[P2P] Received handshake response from peer on port ${port}`);
-
-        // 添加新的已知节点
-        peers.forEach(peerAddress => {
-            if (!this.node.knownPeers.has(peerAddress)) {
-                this.node.knownPeers.add(peerAddress);
-                // 尝试连接到新发现的节点
-                this.node.p2pServer.connectToPeer(peerAddress);
-            }
-        });
+        // 不添加自己的地址
+        if (address !== `ws://${this.node.p2pServer.host}:${this.node.port}`) {
+            this.node.knownPeers.add(address);
+        }
+        this.logger.debug('Known peers:', Array.from(this.node.knownPeers));
     }
 }
 

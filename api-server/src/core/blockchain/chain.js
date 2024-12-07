@@ -7,10 +7,11 @@ import Block from './block.js';
 import { MESSAGE_TYPES } from '../../network/message.handler.js';
 import { UserRegistrationTransaction } from './transaction.js';
 import CryptoUtil from '../../utils/crypto.js';
+import Logger from '../../utils/logger.js';
 
 class Chain {
     // 生成固定的管理员密钥对
-    static ADMIN_KEYS = CryptoUtil.generateKeyPair('admin', 'admin_secret');
+    static ADMIN_KEYS = CryptoUtil.generateKeyPair('admin', 'admin_password');
 
     // 定义管理员信息
     static ADMIN_INFO = {
@@ -20,62 +21,101 @@ class Chain {
         role: 'ADMIN'
     };
 
-    // 定义统一的创世区块
-    static GENESIS_BLOCK = (() => {
-        // 创建管理员注册交易
-        const adminRegTx = new UserRegistrationTransaction({
-            userId: Chain.ADMIN_INFO.id,
-            userType: Chain.ADMIN_INFO.role,
-            publicKey: Chain.ADMIN_INFO.publicKey,
-            timestamp: 1701676800000,  // 2023-12-04 12:00:00 UTC
-            signature: ''
-        });
-
-        // 创建创世区块
-        const block = new Block({
-            timestamp: 1701676800000,  // 2023-12-04 12:00:00 UTC
-            transactions: [adminRegTx],  // 包含管理员注册交易
-            previousHash: '0',
-            validatorId: 'genesis',
-            validatorPubKey: '',
-            signature: ''
-        });
-
-        // 计算区块哈希
-        block.hash = block.calculateHash();
-        return block;
-    })();
-
     constructor(node) {
         this.node = node;
-        this.chainData = [];
+        this.chainData = [Block.GENESIS_BLOCK];
         this.pendingTransactions = new Map();
+        this.logger = new Logger('Chain');
     }
 
     async initialize() {
         const nodeDataDir = path.join(process.cwd(), '.data', `node-${this.node.port}`);
         
         if (!fs.existsSync(nodeDataDir)) {
+            this.logger.info(`Creating data directory: ${nodeDataDir}`);
             fs.mkdirSync(nodeDataDir, { recursive: true });
         }
 
         const dbPath = path.join(nodeDataDir, 'chain.data');
-        this.db = new Level(dbPath);
-        console.log(this.db);
+        this.logger.info(`Opening database at: ${dbPath}`);
+        
+        try {
+            this.db = new Level(dbPath);
+            this.logger.info('Database opened successfully');
+        } catch (error) {
+            this.logger.error('Failed to open database:', error);
+            throw error;
+        }
+
         await this.loadChain();
+        await this.synchronize();
+        this.logger.info('Initialization completed');
+        this.logger.debug(`Chain length: ${this.chainData.length}`);
+        this.logger.debug(`Pending transactions: ${this.pendingTransactions.size}`);
+    }
+
+    async synchronize() {
         await this.synchronizeChain();
-        console.log("chain initialized");
-        console.log(this.chainData.length);
+        await this.synchronizePool();
     }
 
     async synchronizeChain() {
-        console.log("peers.size",this.node.peers.size);
         if (this.node.peers.size > 0) {
-            console.log('[Chain] Starting chain synchronization');
-            const randomPeer = Array.from(this.node.peers)[0];
-            this.node.messageHandler.sendMessage(randomPeer, {
-                type: MESSAGE_TYPES.REQUEST_CHAIN
+            this.logger.info('[Chain] Starting chain synchronization');
+            
+            const syncPromises = Array.from(this.node.peers).map(peer => {
+                return new Promise((resolve) => {
+                    const messageHandler = (message) => {
+                        if (message.type === MESSAGE_TYPES.SEND_CHAIN) {
+                            peer.removeListener('message', messageHandler);
+                            resolve();
+                        }
+                    };
+                    peer.on('message', messageHandler);
+                    
+                    this.node.messageHandler.sendMessage(peer, {
+                        type: MESSAGE_TYPES.REQUEST_CHAIN
+                    });
+
+                    setTimeout(() => {
+                        peer.removeListener('message', messageHandler);
+                        resolve();
+                    }, 5000);
+                });
             });
+
+            await Promise.all(syncPromises);
+            this.logger.info('[Chain] Chain synchronization completed');
+        }
+    }
+
+    async synchronizePool() {
+        if (this.node.peers.size > 0) {
+            this.logger.info('[Pool] Starting pool synchronization');
+            
+            const syncPromises = Array.from(this.node.peers).map(peer => {
+                return new Promise((resolve) => {
+                    const messageHandler = (message) => {
+                        if (message.type === MESSAGE_TYPES.SEND_POOL) {
+                            peer.removeListener('message', messageHandler);
+                            resolve();
+                        }
+                    };
+                    peer.on('message', messageHandler);
+                    
+                    this.node.messageHandler.sendMessage(peer, {
+                        type: MESSAGE_TYPES.REQUEST_POOL
+                    });
+
+                    setTimeout(() => {
+                        peer.removeListener('message', messageHandler);
+                        resolve();
+                    }, 5000);
+                });
+            });
+
+            await Promise.all(syncPromises);
+            this.logger.info('[Pool] Pool synchronization completed');
         }
     }
 
@@ -92,34 +132,45 @@ class Chain {
 
     async loadChain() {
         try {
-            console.log("loading chain");
-            const chainData = await this.db.get('chain');
-            const parsedChainData = JSON.parse(chainData);
-            
-            // 验证第一个区块是否是正确的创世区块
-            if (parsedChainData[0].hash !== Chain.GENESIS_BLOCK.hash) {
-                throw new Error('Invalid genesis block');
+            this.logger.info('Loading chain data...');
+
+            try {
+                const chainData = await this.db.get('chain');
+                console.log("chainData", chainData);
+                if (!chainData) {
+                    this.logger.info('No chain data found, starting with genesis block');
+                    
+                    this.chainData = [Block.GENESIS_BLOCK];
+                    await this.saveChain();
+                    return;
+                }
+
+                const parsedChainData = JSON.parse(chainData);
+                // 验证第一个区块是否是正确的创世区块
+                if (parsedChainData[0].hash !== Block.GENESIS_BLOCK.hash) {
+                    throw new Error('Invalid genesis block');
+                }
+                
+                this.chainData = parsedChainData.map(data => new Block(data));
+                
+                const pendingData = await this.db.get('pending');
+                const parsedPendingData = JSON.parse(pendingData);
+                parsedPendingData.forEach(tx => {
+                    this.pendingTransactions.set(tx.hash, tx);
+                });
+            } catch (error) {
+                if (error.code === 'LEVEL_NOT_FOUND') {
+                    this.logger.info('No existing chain found, starting with genesis block');
+                    this.chainData = [Block.GENESIS_BLOCK];
+                    await this.saveChain();
+                } else {
+                    this.logger.error('Error loading chain data:', error);
+                    throw error;
+                }
             }
-            
-            this.chainData = parsedChainData.map(data => new Block(data));
-            
-            const pendingData = await this.db.get('pending');
-            const parsedPendingData = JSON.parse(pendingData);
-            parsedPendingData.forEach(tx => {
-                this.pendingTransactions.set(tx.hash, tx);
-            });
         } catch (error) {
-            if (error.code === 'LEVEL_NOT_FOUND') {
-                console.log("[Chain] No existing chain found, starting with genesis block");
-                this.chainData = [Chain.GENESIS_BLOCK];
-                await this.saveChain();
-            } else if (error.message === 'Invalid genesis block') {
-                console.error('[Chain] Invalid genesis block detected');
-                throw error;
-            } else {
-                console.error('Error loading chain:', error);
-                throw error;
-            }
+            this.logger.error('Critical error in loadChain:', error);
+            throw error;
         }
     }
 
@@ -215,21 +266,22 @@ class Chain {
 
     /**
      * 替换链（在收到更长的有效链时）
-     * @param {Object} chainData 包含 chain 和 pendingTransactions
      */
     replaceChain(chainData) {
-        const { chain: newChain, pendingTransactions } = chainData;
+        const newChain  = chainData;
 
         // 将 JSON 数据转换为 Block 对象
         const newBlockChain = newChain.map(blockData => new Block(blockData));
 
-        // 新链必须更长
-        if (newBlockChain.length < this.chainData.length) {
-            throw new Error('New chain must be longer');
+        // 只有更长的链才考虑替换
+        if (newBlockChain.length <= this.chainData.length) {
+            this.logger.debug('Received chain is not longer than current chain');
+            return;  // 直接返回，不抛出错误
         }
-        // 验证新链       
-        else{
-            console.log("validating new chain");
+
+        // 验证新链
+        try {
+            this.logger.info("Validating new chain");
             for (let i = 1; i < newBlockChain.length; i++) {
                 const block = newBlockChain[i];
                 const previousBlock = newBlockChain[i - 1];
@@ -237,20 +289,24 @@ class Chain {
                     throw new Error('Invalid chain');
                 }
             }
+
+            // 验证通过后替换链
+            this.chainData = newBlockChain;
+            
+            // 更新待处理交易池
+            pendingTransactions.forEach(tx => {
+                this.pendingTransactions.set(tx.hash, tx);
+            });
+
+            // 清理交易池中已经包含在新链中的交易
+            this.cleanTransactionPool(newBlockChain);
+            this.saveChain();
+            
+            this.logger.info('Chain replaced successfully');
+        } catch (error) {
+            this.logger.error('Failed to replace chain:', error);
+            throw error;
         }
-
-        // 替换链
-        this.chainData = newBlockChain;
-        
-        // 更新待处理交易池
-        //this.pendingTransactions.clear();
-        pendingTransactions.forEach(tx => {
-            this.pendingTransactions.set(tx.hash, tx);
-        });
-
-        // 清理交易池中已经包含在新链中的交易
-        this.cleanTransactionPool(newBlockChain);
-        this.saveChain();
     }
 
     /**
