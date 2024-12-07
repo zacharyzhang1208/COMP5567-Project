@@ -2,9 +2,11 @@ import Chain from '../blockchain/chain.js';
 import MessageHandler from '../../network/message.handler.js';
 import P2PServer from '../../network/p2p.server.js';
 import HttpServer from '../../http/http.server.js';
+import { EventEmitter } from 'events';
 
-class BaseNode {
+class BaseNode extends EventEmitter {
     constructor() {
+        super();
         this.messageHandler = new MessageHandler(this);
         this.peers = new Set();
         this.knownPeers = new Set();

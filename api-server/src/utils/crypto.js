@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash, createCipheriv, createDecipheriv } from 'crypto';
 import secp256k1 from 'secp256k1';
 
 class CryptoUtil {
@@ -68,6 +68,28 @@ class CryptoUtil {
         return createHash('sha256')
             .update(message)
             .digest('hex');
+    }
+
+    static encrypt(data, password) {
+        // 使用密码生成固定的密钥和 IV
+        const key = createHash('sha256').update(password).digest();
+        const iv = createHash('md5').update(password).digest();  // 16 bytes for IV
+
+        const cipher = createCipheriv('aes-256-cbc', key, iv);
+        let encrypted = cipher.update(data, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        return encrypted;
+    }
+
+    static decrypt(encryptedData, password) {
+        // 使用相同的密码生成相同的密钥和 IV
+        const key = createHash('sha256').update(password).digest();
+        const iv = createHash('md5').update(password).digest();
+
+        const decipher = createDecipheriv('aes-256-cbc', key, iv);
+        let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return decrypted;
     }
 }
 
