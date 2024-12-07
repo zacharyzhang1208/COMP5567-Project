@@ -69,12 +69,9 @@ class MessageHandler {
     handleNewTransaction(transaction) {
         try {
             
-            // 传入的是JSON数据（来自网络消息），需要实例化
-            let newTransaction;
-            console.log("transaction.type:", transaction.type);
+            // 传入的是JSON数据（来自网络消息）
             switch (transaction.type) {
                 case 'USER_REGISTRATION':
-                    console.log("Handleing new transaction");
                     newTransaction = new UserRegistrationTransaction(transaction);
                     break;
                 // ... 其他 case
@@ -152,7 +149,6 @@ class MessageHandler {
      * 处理交易池响应
      */
     handlePoolResponse(poolData) {
-        console.log("handling pool syn response")
         try {
             const { transactions } = poolData;
 
