@@ -84,6 +84,7 @@ class TeacherNode extends BaseNode {
         this.chain.addTransaction(userRegTx);
         await this.messageHandler.broadcastTransaction(userRegTx);
         await this.chain.saveChain();
+        console.log('pendingTransactions.size', this.chain.pendingTransactions.size);
         
         if (!this.chain.isValidChain()) {
             throw new Error('Blockchain validation failed');
