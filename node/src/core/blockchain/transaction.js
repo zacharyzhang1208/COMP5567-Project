@@ -1,42 +1,30 @@
-import { createHash } from 'crypto';
+import CryptoUtil from '../../utils/crypto.js';
 
 // 基础交易类
 export class BaseTransaction {
     constructor(type, { timestamp, signature } = {}) {
         this.type = type;
-        this.timestamp = timestamp || Date.now();
+        this.timestamp = timestamp === undefined ? Date.now() : timestamp;
         this.signature = signature;
+        // 基类的哈希计算，由子类负责
     }
 
+    // 抽象方法，强制子类实现
     calculateHash() {
-        const data = {
-            type: this.type,
-            timestamp: this.timestamp,
-            ...(this.userId && { userId: this.userId }),
-            ...(this.userType && { userType: this.userType }),
-            ...(this.publicKey && { publicKey: this.publicKey }),
-            ...(this.courseId && { courseId: this.courseId }),
-            ...(this.teacherId && { teacherId: this.teacherId }),
-            ...(this.courseName && { courseName: this.courseName }),
-            ...(this.studentId && { studentId: this.studentId }),
-            ...(this.verificationCode && { verificationCode: this.verificationCode })
-        };
-        
-        return createHash('sha256').update(JSON.stringify(data)).digest('hex');
+        throw new Error('calculateHash method must be implemented by child class');
     }
 
-    // 添加基础的 isValid 方法
+    // 基础的验证逻辑
     isValid() {
-        //基本验证：检查必要字段是否存在
         if (!this.type || !this.timestamp) {
             return false;
         }
 
-        // 验证哈希值
+        if (!this.hash) {  // 确保子类计算了哈希
+            return false;
+        }
+
         if (this.hash !== this.calculateHash()) {
-            console.log("this is", this)
-            console.log("this.hash",this.hash)
-            console.log("this.calculateHash",this.calculateHash())
             return false;
         }
 
@@ -55,12 +43,25 @@ export class BaseTransaction {
 
 // 用户注册交易
 export class UserRegistrationTransaction extends BaseTransaction {
-    constructor({ userId, userType, publicKey, ...rest }) {
+    constructor({ userId, userType, publicKey, encryptedPrivateKeyHash, ...rest }) {
         super('USER_REGISTRATION', rest);
+        
         this.userId = userId;
-        this.userType = userType;  // 'TEACHER' 或 'STUDENT'
+        this.userType = userType;
         this.publicKey = publicKey;
+        this.encryptedPrivateKeyHash = encryptedPrivateKeyHash;
         this.hash = this.calculateHash();
+    }
+
+    calculateHash() {
+        return CryptoUtil.hash(
+            this.type +
+            this.userId +
+            this.userType +
+            this.publicKey +
+            this.encryptedPrivateKeyHash +
+            this.timestamp
+        );
     }
 
     // 可以选择重写 isValid 方法来添加特定的验证逻辑
@@ -77,7 +78,8 @@ export class UserRegistrationTransaction extends BaseTransaction {
             ...super.toJSON(),
             userId: this.userId,
             userType: this.userType,
-            publicKey: this.publicKey
+            publicKey: this.publicKey,
+            encryptedPrivateKeyHash: this.encryptedPrivateKeyHash  // 包含在序列化中
         };
     }
 }

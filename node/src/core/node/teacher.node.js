@@ -14,7 +14,7 @@ class TeacherNode extends BaseNode {
         process.on('SIGINT', async () => {
             console.log('\n[Node] Received SIGINT signal');
             // 使用 nextTick 确保 exit 处理器有机会执行
-            process.nextTick(() => process.exit(0));
+            process.exit(0);
         });
 
         process.on('exit', (code)=> {
@@ -55,12 +55,13 @@ class TeacherNode extends BaseNode {
         const password = await CLI.prompt('Password: ');
 
         const { publicKey, privateKey } = CryptoUtil.generateKeyPair(username, password);
-        // 目前直接登录成功
+        // 临时存储，日后替换为完整逻辑
         this.isLoggedIn = true;
         this.currentUser = {
             privateKey,
             publicKey,
             username,
+            password,
             role: 'TEACHER'
         };
         
@@ -69,18 +70,24 @@ class TeacherNode extends BaseNode {
     }
 
     async onStart() {
-        // 教师节点特有的启动逻辑
+        console.log('currentUser.privateKey', this.currentUser.privateKey);
         
+        // 使用用户密码加密私钥并计算哈希
+        const encryptedPrivateKeyHash = CryptoUtil.hash(
+            CryptoUtil.encrypt(this.currentUser.privateKey, this.currentUser.password)
+        );
         
         const userRegTx = new UserRegistrationTransaction({
-            userId: 'root',
+            userId: 'test_001',
             userType: 'TEACHER',
-            publicKey: this.currentUser.publicKey
+            publicKey: this.currentUser.publicKey,
+            encryptedPrivateKeyHash: encryptedPrivateKeyHash,  // 添加加密后的私钥哈希
+            timestamp: Date.now()
         });
         
+        console.log('userRegTx.hash', userRegTx.hash);
         const signature = CryptoUtil.sign(userRegTx.hash, this.currentUser.privateKey);
         userRegTx.signature = signature;
-        const isValid = CryptoUtil.verify(userRegTx.hash, signature, this.currentUser.publicKey);
 
         this.chain.addTransaction(userRegTx);
         await this.messageHandler.broadcastTransaction(userRegTx);

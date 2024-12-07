@@ -11,7 +11,7 @@ import Logger from '../../utils/logger.js';
 
 class Chain {
     // 生成固定的管理员密钥对
-    static ADMIN_KEYS = CryptoUtil.generateKeyPair('admin', 'admin_secret');
+    static ADMIN_KEYS = CryptoUtil.generateKeyPair('admin', 'admin_password');
 
     // 定义管理员信息
     static ADMIN_INFO = {
@@ -21,35 +21,9 @@ class Chain {
         role: 'ADMIN'
     };
 
-    // 定义统一的创世区块
-    static GENESIS_BLOCK = (() => {
-        // 创建管理员注册交易
-        const adminRegTx = new UserRegistrationTransaction({
-            userId: Chain.ADMIN_INFO.id,
-            userType: Chain.ADMIN_INFO.role,
-            publicKey: Chain.ADMIN_INFO.publicKey,
-            timestamp: 1701676800000,  // 2023-12-04 12:00:00 UTC
-            signature: ''
-        });
-
-        // 创建创世区块
-        const block = new Block({
-            timestamp: 1701676800000,  // 2023-12-04 12:00:00 UTC
-            transactions: [adminRegTx],  // 包含管理员注册交易
-            previousHash: '0',
-            validatorId: 'genesis',
-            validatorPubKey: '',
-            signature: ''
-        });
-
-        // 计算区块哈希
-        block.hash = block.calculateHash();
-        return block;
-    })();
-
     constructor(node) {
         this.node = node;
-        this.chainData = [];
+        this.chainData = [Block.GENESIS_BLOCK];
         this.pendingTransactions = new Map();
         this.logger = new Logger('Chain');
     }
@@ -162,18 +136,18 @@ class Chain {
 
             try {
                 const chainData = await this.db.get('chain');
-                
+                console.log("chainData", chainData);
                 if (!chainData) {
                     this.logger.info('No chain data found, starting with genesis block');
-                    this.chainData = [Chain.GENESIS_BLOCK];
+                    
+                    this.chainData = [Block.GENESIS_BLOCK];
                     await this.saveChain();
                     return;
                 }
 
                 const parsedChainData = JSON.parse(chainData);
-                
                 // 验证第一个区块是否是正确的创世区块
-                if (parsedChainData[0].hash !== Chain.GENESIS_BLOCK.hash) {
+                if (parsedChainData[0].hash !== Block.GENESIS_BLOCK.hash) {
                     throw new Error('Invalid genesis block');
                 }
                 
@@ -187,7 +161,7 @@ class Chain {
             } catch (error) {
                 if (error.code === 'LEVEL_NOT_FOUND') {
                     this.logger.info('No existing chain found, starting with genesis block');
-                    this.chainData = [Chain.GENESIS_BLOCK];
+                    this.chainData = [Block.GENESIS_BLOCK];
                     await this.saveChain();
                 } else {
                     this.logger.error('Error loading chain data:', error);
