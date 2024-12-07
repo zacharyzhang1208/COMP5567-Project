@@ -152,6 +152,7 @@ class MessageHandler {
      * 处理交易池响应
      */
     handlePoolResponse(poolData) {
+        console.log("handling pool syn response")
         try {
             const { transactions } = poolData;
 
