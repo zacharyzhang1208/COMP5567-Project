@@ -190,7 +190,6 @@ class MessageHandler {
      */
     broadcastTransaction(transaction) {
         this.logger.debug('Broadcasting transaction:', transaction);
-        console.log("transaction.toJSON:",transaction.toJSON());
         this.broadcast({
             type: MESSAGE_TYPES.NEW_TRANSACTION,
             data: transaction.toJSON(),

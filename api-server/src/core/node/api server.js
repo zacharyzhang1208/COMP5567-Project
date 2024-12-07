@@ -133,33 +133,33 @@ class ApiServer extends BaseNode {
         }
     }
 
-    async sendMappingRequest(apiServerUrl) {
-        try {
-            const requestData = {
-                teacherId: this.id,
-                ipAddress: this.ipAddress,
-                port: this.port
-            };
+    // async sendMappingRequest(apiServerUrl) {
+    //     try {
+    //         const requestData = {
+    //             teacherId: this.id,
+    //             ipAddress: this.ipAddress,
+    //             port: this.port
+    //         };
 
-            const response = await axios.post(`${apiServerUrl}/teacher/map`, requestData);
-            console.log('Mapping request response:', response.data);
-        } catch (error) {
-            console.error('Failed to send mapping request:', error);
-        }
-    }
+    //         const response = await axios.post(`${apiServerUrl}/teacher/map`, requestData);
+    //         console.log('Mapping request response:', response.data);
+    //     } catch (error) {
+    //         console.error('Failed to send mapping request:', error);
+    //     }
+    // }
 
-    async sendUnmappingRequest(apiServerUrl) {
-        try {
-            const requestData = {
-                teacherId: this.id
-            };
+    // async sendUnmappingRequest(apiServerUrl) {
+    //     try {
+    //         const requestData = {
+    //             teacherId: this.id
+    //         };
 
-            const response = await axios.post(`${apiServerUrl}/teacher/unmap`, requestData);
-            console.log('Unmapping request response:', response.data);
-        } catch (error) {
-            console.error('Failed to send unmapping request:', error);
-        }
-    }
+    //         const response = await axios.post(`${apiServerUrl}/teacher/unmap`, requestData);
+    //         console.log('Unmapping request response:', response.data);
+    //     } catch (error) {
+    //         console.error('Failed to send unmapping request:', error);
+    //     }
+    // }
 
     // async sendHeartbeat(apiServerUrl) {
     //     try {

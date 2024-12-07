@@ -150,7 +150,6 @@ class HttpServer {
                         throw new Error('Unknown transaction type');
                 }
 
-                console.log("transactionData:",transaction);
                 // 广播交易到所有教师节点
                 this.node.messageHandler.broadcastTransaction(transaction);
 
