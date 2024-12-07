@@ -5,6 +5,7 @@ import Block from '../blockchain/block.js';
 import CLI from '../../utils/cli.js';
 import fetch from 'node-fetch';
 import { envConfig } from '../../../config/env.config.js';
+import NetworkUtils from '../../utils/network.js';
 
 class TeacherNode extends BaseNode {
     constructor() {
@@ -42,12 +43,24 @@ class TeacherNode extends BaseNode {
         const encryptedPrivateKey = CryptoUtil.encrypt(privateKey, password);
         const encryptedPrivateKeyHash = CryptoUtil.hash(encryptedPrivateKey);
 
-        // 3. 首次发送映射请求
+        // 3. 在区块链中查找用户注册交易
+        const userRegTx = UserRegistrationTransaction.findByUsername(this.chain, userId);
+        if (!userRegTx) {
+            console.log('\n[Node] User not found');
+            return false;
+        }
+
+        // 4. 验证哈希值
+        if (userRegTx.encryptedPrivateKeyHash !== encryptedPrivateKeyHash) {
+            console.log('\n[Node] Invalid credentials');
+            return false;
+        }
+        // 5. 发送首次心跳请求
         if (!await this.sendMapRequest(userId)) {
             return false;
         }
 
-        // 4. 保存用户信息
+        // 6. 保存用户信息
         this.isLoggedIn = true;
         this.currentUser = {
             privateKey,
@@ -56,10 +69,10 @@ class TeacherNode extends BaseNode {
             password,
             encryptedPrivateKey,
             encryptedPrivateKeyHash,
-            role: 'TEACHER'  // 默认角色
+            role: userRegTx.userType  // 从链上获取用户角色
         };
 
-        // 5. 启动定时映射任务
+        // 7. 启动定时心跳任务
         this.startMapInterval(userId);
         
         console.log(`\nWelcome, ${userId}!`);
@@ -77,8 +90,8 @@ class TeacherNode extends BaseNode {
                 },
                 body: JSON.stringify({
                     userId,
-                    host: this.host,
-                    port: this.port,
+                    host: NetworkUtils.getLocalIP(),
+                    port: this.port+1000,
                 })
             });
 
