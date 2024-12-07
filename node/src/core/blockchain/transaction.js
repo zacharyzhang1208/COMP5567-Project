@@ -82,6 +82,18 @@ export class UserRegistrationTransaction extends BaseTransaction {
             encryptedPrivateKeyHash: this.encryptedPrivateKeyHash  // 包含在序列化中
         };
     }
+
+    // 静态方法：在区块链中查找用户注册交易
+    static findByUsername(chain, username) {
+        for (const block of chain.chainData) {
+            for (const tx of block.transactions) {
+                if (tx.type === 'USER_REGISTRATION' && tx.userId === username) {
+                    return tx;
+                }
+            }
+        }
+        return null;
+    }
 }
 
 // 课程创建交易

@@ -3,7 +3,6 @@ import CryptoUtil from '../../utils/crypto.js';
 import { UserRegistrationTransaction } from '../blockchain/transaction.js';
 import Block from '../blockchain/block.js';
 import CLI from '../../utils/cli.js';
-import PortUtils from '../../utils/port.js';
 
 class TeacherNode extends BaseNode {
     constructor() {
@@ -22,47 +21,41 @@ class TeacherNode extends BaseNode {
         });
     }
 
-    // async shutdown() {
-    //     try {
-    //         console.log('\n[Node] Starting shutdown process...');
-            
-    //         // 1. 保存数据
-    //         if (this.chain) {
-    //             await this.chain.saveChain();
-    //             console.log('[Node] Chain data saved');
-    //         }
-            
-    //         // 2. 关闭数据库
-    //         if (this.chain?.db) {
-    //             await this.chain.db.close();
-    //             console.log('[Node] Database closed');
-    //         }
-            
-    //         // 3. 关闭网络连接
-    //         this.peers?.forEach(peer => peer.close());
-    //         this.p2pServer?.server?.close();
-    //         console.log('[Node] Network connections closed');
-
-    //         console.log('[Node] Shutdown completed');
-    //     } catch (error) {
-    //         console.error('[Node] Error during shutdown:', error);
-    //     }
-    // }
-
     async login() {
-        console.log('\n=== Teacher Node Login ===');
+        console.log('\n=== Node Login ===');
         const username = await CLI.prompt('Username: ');
         const password = await CLI.prompt('Password: ');
 
+        // 1. 生成密钥对
         const { publicKey, privateKey } = CryptoUtil.generateKeyPair(username, password);
-        // 临时存储，日后替换为完整逻辑
+        
+        // 2. 生成加密后的私钥哈希
+        const encryptedPrivateKey = CryptoUtil.encrypt(privateKey, password);
+        const encryptedPrivateKeyHash = CryptoUtil.hash(encryptedPrivateKey);
+
+        // 3. 在区块链中查找用户注册交易
+        const userRegTx = UserRegistrationTransaction.findByUsername(this.chain, username);
+        if (!userRegTx) {
+            console.log('\n[Node] User not found');
+            return false;
+        }
+
+        // 4. 验证哈希值
+        if (userRegTx.encryptedPrivateKeyHash !== encryptedPrivateKeyHash) {
+            console.log('\n[Node] Invalid credentials');
+            return false;
+        }
+
+        // 5. 登录成功，保存用户信息
         this.isLoggedIn = true;
         this.currentUser = {
-            privateKey,
-            publicKey,
-            username,
-            password,
-            role: 'TEACHER'
+            privateKey,                    // 原始私钥（用于签名）
+            publicKey,                     // 公钥
+            username,                      // 用户名
+            password,                      // 密码（用于加密/解密）
+            encryptedPrivateKey,          // 加密后的私钥
+            encryptedPrivateKeyHash,      // 加密后私钥的哈希值
+            role: userRegTx.userType      // 从链上获取用户角色
         };
         
         console.log(`\nWelcome, ${username}!`);
@@ -85,7 +78,6 @@ class TeacherNode extends BaseNode {
             timestamp: Date.now()
         });
         
-        console.log('userRegTx.hash', userRegTx.hash);
         const signature = CryptoUtil.sign(userRegTx.hash, this.currentUser.privateKey);
         userRegTx.signature = signature;
 
