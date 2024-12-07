@@ -161,20 +161,20 @@ class TeacherNode extends BaseNode {
         }
     }
 
-    async sendHeartbeat(apiServerUrl) {
-        try {
-            const requestData = {
-                userId: this.id,
-                ipAddress: this.ipAddress,
-                port: this.port
-            };
+    // async sendHeartbeat(apiServerUrl) {
+    //     try {
+    //         const requestData = {
+    //             userId: this.id,
+    //             ipAddress: this.ipAddress,
+    //             port: this.port
+    //         };
 
-            const response = await axios.post(`${apiServerUrl}/teacher/heartbeat`, requestData);
-            console.log('Heartbeat response:', response.data);
-        } catch (error) {
-            console.error('Failed to send heartbeat:', error);
-        }
-    }
+    //         const response = await axios.post(`${apiServerUrl}/teacher/heartbeat`, requestData);
+    //         console.log('Heartbeat response:', response.data);
+    //     } catch (error) {
+    //         console.error('Failed to send heartbeat:', error);
+    //     }
+    // }
 
     static async startNode() {
         try {
